@@ -1,0 +1,23 @@
+[package]
+
+# Semantic Versioning is used: https://semver.org/
+version = "0.1.0"
+
+# Description
+category = "isaaclab"
+readme = "README.md"
+
+title = "MAD Reinforcement Learning"
+author = "MAD"
+maintainer = "MAD"
+description = "Extension for reinforcement learning pipelines in Isaac Lab"
+repository = "https://github.com/isaac-sim/IsaacLab.git"
+keywords = ["extension", "isaaclab"]
+
+[dependencies]
+"isaaclab" = {}
+"isaaclab_rl" = {}
+"isaaclab_tasks" = {}
+
+[[python.module]]
+name = "mad_rl"

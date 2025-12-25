@@ -52,7 +52,7 @@ RUN --mount=type=cache,target=/var/cache/apt \
     rm -rf /var/lib/apt/lists/*
 
 # Clone Isaac Lab and checkout to a specific commit
-ARG ISAACLAB_COMMIT_SHA=18c7c58d7a6758b6119401945b881e21c8ec0392
+ARG ISAACLAB_COMMIT_SHA=9d17b524536b341da09987ef765a0ad0501c64ca
 RUN git clone https://github.com/isaac-sim/IsaacLab.git ${ISAACLAB_PATH} && \
     cd ${ISAACLAB_PATH} && \
     git checkout ${ISAACLAB_COMMIT_SHA}

@@ -29,10 +29,23 @@ class SceneCfg(InteractiveSceneCfg):
 
     robot: ArticulationCfg = ROBOT_CFG.replace(
         prim_path="{ENV_REGEX_NS}/Robot",
+        articulation_root_prim_path="/base/pelvis/base",
     )
 
-    contact_forces = ContactSensorCfg(
-        prim_path="{ENV_REGEX_NS}/Robot/.*",
+    torso_contact_forces = ContactSensorCfg(
+        prim_path="{ENV_REGEX_NS}/Robot/base/torso/base",
+        history_length=3,
+        track_air_time=False,
+    )
+
+    left_foot_contact_forces = ContactSensorCfg(
+        prim_path="{ENV_REGEX_NS}/Robot/base/left_ankle_roll/base",
+        history_length=3,
+        track_air_time=True,
+    )
+
+    right_foot_contact_forces = ContactSensorCfg(
+        prim_path="{ENV_REGEX_NS}/Robot/base/right_ankle_roll/base",
         history_length=3,
         track_air_time=True,
     )

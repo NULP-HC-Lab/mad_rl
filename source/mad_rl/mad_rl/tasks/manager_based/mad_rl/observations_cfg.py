@@ -4,6 +4,7 @@ from isaaclab.managers import SceneEntityCfg
 from isaaclab.utils import configclass
 from isaaclab.utils.noise import AdditiveUniformNoiseCfg as Unoise
 from isaaclab_tasks.manager_based.locomotion.velocity import mdp
+from mad_rl.assets import CONTROLLABLE_JOINT_NAMES
 
 
 @configclass
@@ -36,15 +37,7 @@ class ObservationsCfg:
             params={
                 "asset_cfg": SceneEntityCfg(
                     "robot",
-                    joint_names=[
-                        ".*_hip_yaw_joint",
-                        ".*_hip_roll_joint",
-                        ".*_hip_pitch_joint",
-                        ".*_knee_joint",
-                        "torso_joint",
-                        ".*_ankle_pitch_joint",
-                        ".*_ankle_roll_joint",
-                    ],
+                    joint_names=CONTROLLABLE_JOINT_NAMES,
                 )
             },
         )
@@ -55,15 +48,7 @@ class ObservationsCfg:
             params={
                 "asset_cfg": SceneEntityCfg(
                     "robot",
-                    joint_names=[
-                        ".*_hip_yaw_joint",
-                        ".*_hip_roll_joint",
-                        ".*_hip_pitch_joint",
-                        ".*_knee_joint",
-                        "torso_joint",
-                        ".*_ankle_pitch_joint",
-                        ".*_ankle_roll_joint",
-                    ],
+                    joint_names=CONTROLLABLE_JOINT_NAMES,
                 )
             },
         )

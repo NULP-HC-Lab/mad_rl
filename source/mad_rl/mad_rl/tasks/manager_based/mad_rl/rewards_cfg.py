@@ -2,6 +2,9 @@ from isaaclab.managers import RewardTermCfg as RewTerm
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.utils import configclass
 from isaaclab_tasks.manager_based.locomotion.velocity import mdp
+from mad_rl.assets import FOOT_BODY_NAMES
+
+from . import mdp as mad_mdp
 
 
 @configclass
@@ -51,21 +54,23 @@ class RewardsCfg:
     )
 
     feet_air_time = RewTerm(
-        func=mdp.feet_air_time_positive_biped,
+        func=mad_mdp.feet_air_time_positive_biped,
         weight=0.75,
         params={
             "command_name": "base_velocity",
-            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
+            "left_foot_sensor_cfg": SceneEntityCfg("left_foot_contact_forces"),
+            "right_foot_sensor_cfg": SceneEntityCfg("right_foot_contact_forces"),
             "threshold": 0.2,
         },
     )
 
     feet_slide = RewTerm(
-        func=mdp.feet_slide,
+        func=mad_mdp.feet_slide,
         weight=-0.1,
         params={
-            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
-            "asset_cfg": SceneEntityCfg("robot", body_names=".*_ankle_roll_link"),
+            "left_foot_sensor_cfg": SceneEntityCfg("left_foot_contact_forces"),
+            "right_foot_sensor_cfg": SceneEntityCfg("right_foot_contact_forces"),
+            "asset_cfg": SceneEntityCfg("robot", body_names=FOOT_BODY_NAMES),
         },
     )
 
@@ -84,10 +89,4 @@ class RewardsCfg:
         func=mdp.joint_deviation_l1,
         weight=-0.1,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_yaw_joint", ".*_hip_roll_joint"])},
-    )
-
-    joint_deviation_torso = RewTerm(
-        func=mdp.joint_deviation_l1,
-        weight=-0.1,
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names="torso_joint")},
     )

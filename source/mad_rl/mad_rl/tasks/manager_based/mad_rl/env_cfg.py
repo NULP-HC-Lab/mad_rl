@@ -32,8 +32,12 @@ class EnvCfg(ManagerBasedRLEnvCfg):
         self.sim.physics_material = self.scene.terrain.physics_material
         self.sim.physx.gpu_max_rigid_patch_count = 10 * 2**15
 
-        if self.scene.contact_forces is not None:
-            self.scene.contact_forces.update_period = self.sim.dt
+        if self.scene.torso_contact_forces is not None:
+            self.scene.torso_contact_forces.update_period = self.sim.dt
+        if self.scene.left_foot_contact_forces is not None:
+            self.scene.left_foot_contact_forces.update_period = self.sim.dt
+        if self.scene.right_foot_contact_forces is not None:
+            self.scene.right_foot_contact_forces.update_period = self.sim.dt
 
 
 @configclass
@@ -47,13 +51,12 @@ class EnvCfg_PLAY(EnvCfg):
             usd_path=os.path.join(
                 os.environ["DOCKER_MAD_ASSETS_PATH"],
                 "models",
-                "brick_road",
-                "brick_road.usd",
+                "floor",
+                "floor.usd",
             ),
             collision_group=-1,
             debug_vis=True,
         )
-        self.scene.robot.init_state.pos = (0.0, 0.0, 1.0)
         self.scene.num_envs = 1
 
         self.episode_length_s = 40.0

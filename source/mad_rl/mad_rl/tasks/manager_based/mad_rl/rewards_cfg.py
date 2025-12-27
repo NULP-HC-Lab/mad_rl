@@ -2,9 +2,9 @@ from isaaclab.managers import RewardTermCfg as RewTerm
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.utils import configclass
 from isaaclab_tasks.manager_based.locomotion.velocity import mdp
-from mad_rl.assets import FOOT_BODY_NAMES
 
-from . import mdp as mad_mdp
+from .constants import FOOT_BODY_NAMES
+from .rewards import feet_air_time_positive_biped, feet_slide
 
 
 @configclass
@@ -54,7 +54,7 @@ class RewardsCfg:
     )
 
     feet_air_time = RewTerm(
-        func=mad_mdp.feet_air_time_positive_biped,
+        func=feet_air_time_positive_biped,
         weight=0.75,
         params={
             "command_name": "base_velocity",
@@ -65,7 +65,7 @@ class RewardsCfg:
     )
 
     feet_slide = RewTerm(
-        func=mad_mdp.feet_slide,
+        func=feet_slide,
         weight=-0.1,
         params={
             "left_foot_sensor_cfg": SceneEntityCfg("left_foot_contact_forces"),

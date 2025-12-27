@@ -4,7 +4,8 @@ from isaaclab.managers import SceneEntityCfg
 from isaaclab.utils import configclass
 from isaaclab.utils.noise import AdditiveUniformNoiseCfg as Unoise
 from isaaclab_tasks.manager_based.locomotion.velocity import mdp
-from mad_rl.assets import CONTROLLABLE_JOINT_NAMES
+
+from .constants import CONTROLLABLE_JOINT_NAMES
 
 
 @configclass

@@ -3,8 +3,8 @@ from isaaclab.managers import SceneEntityCfg
 from isaaclab.utils import configclass
 from isaaclab_tasks.manager_based.locomotion.velocity import mdp
 
-from .constants import FOOT_BODY_NAMES
-from .rewards import feet_air_time_positive_biped, feet_slide
+from ..constants import FOOT_BODY_NAMES
+from ..rewards import feet_air_time_positive_biped, feet_slide
 
 
 @configclass

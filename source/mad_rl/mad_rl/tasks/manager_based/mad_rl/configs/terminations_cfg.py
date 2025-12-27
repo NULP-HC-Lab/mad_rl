@@ -14,7 +14,7 @@ class TerminationsCfg:
     base_contact = DoneTerm(
         func=mdp.illegal_contact,
         params={
-            "sensor_cfg": SceneEntityCfg("contact_forces", body_names="torso_link"),
+            "sensor_cfg": SceneEntityCfg("torso_contact_forces"),
             "threshold": 1.0,
         },
     )

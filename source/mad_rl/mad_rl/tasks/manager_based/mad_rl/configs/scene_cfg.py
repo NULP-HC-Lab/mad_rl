@@ -31,7 +31,6 @@ class SceneCfg(InteractiveSceneCfg):
 
     robot = ArticulationCfg(
         prim_path="{ENV_REGEX_NS}/Robot",
-        articulation_root_prim_path="/base/pelvis/base",
         spawn=sim_utils.UsdFileCfg(
             usd_path=os.path.join(os.environ["DOCKER_MAD_ASSETS_PATH"], "models", "G1_upd", "G1.usd"),
             activate_contact_sensors=True,

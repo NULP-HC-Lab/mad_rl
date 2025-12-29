@@ -5,8 +5,8 @@ gym.register(
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
     disable_env_checker=True,
     kwargs={
-        "env_cfg_entry_point": f"{__name__}.configs.env_cfg:EnvCfg",
-        "rsl_rl_cfg_entry_point": f"{__name__}.configs.rsl_rl_ppo_cfg:RslRlPpoCfg",
+        "env_cfg_entry_point": f"{__name__}.env_cfg:EnvCfg",
+        "rsl_rl_cfg_entry_point": f"{__name__}.rsl_rl_ppo_cfg:RslRlPpoCfg",
     },
 )
 
@@ -15,7 +15,7 @@ gym.register(
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
     disable_env_checker=True,
     kwargs={
-        "env_cfg_entry_point": f"{__name__}.configs.env_cfg:EnvCfg_PLAY",
-        "rsl_rl_cfg_entry_point": f"{__name__}.configs.rsl_rl_ppo_cfg:RslRlPpoCfg",
+        "env_cfg_entry_point": f"{__name__}.env_cfg:EnvCfg_PLAY",
+        "rsl_rl_cfg_entry_point": f"{__name__}.rsl_rl_ppo_cfg:RslRlPpoCfg",
     },
 )

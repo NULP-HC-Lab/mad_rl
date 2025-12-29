@@ -6,7 +6,7 @@ from isaaclab_rl.rsl_rl import (
     RslRlSymmetryCfg,
 )
 
-from ..symmetry import compute_symmetry_augmented_data
+from .utils.symmetry import compute_symmetry_augmented_data
 
 
 @configclass

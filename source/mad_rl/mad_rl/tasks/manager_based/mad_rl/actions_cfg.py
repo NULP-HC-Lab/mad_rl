@@ -1,7 +1,7 @@
 from isaaclab.utils import configclass
 from isaaclab_tasks.manager_based.locomotion.velocity import mdp
 
-from ..constants import CONTROLLABLE_JOINT_NAMES
+from .utils.constants import CONTROLLABLE_JOINT_NAMES
 
 
 @configclass

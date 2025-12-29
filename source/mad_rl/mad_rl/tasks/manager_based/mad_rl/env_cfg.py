@@ -26,6 +26,7 @@ class EnvCfg(ManagerBasedRLEnvCfg):
     def __post_init__(self):
         self.decimation = 4
         self.episode_length_s = 20.0
+        self.seed = 42
 
         self.sim.dt = 0.005
         self.sim.render_interval = self.decimation
@@ -59,7 +60,7 @@ class EnvCfg_PLAY(EnvCfg):
         )
         self.scene.num_envs = 1
 
-        self.episode_length_s = 40.0
+        self.scene.robot.init_state.pos = (0.0, 0.0, 0.81)
 
         self.commands.base_velocity.ranges.lin_vel_x = (1.0, 1.0)
         self.commands.base_velocity.ranges.lin_vel_y = (0.0, 0.0)

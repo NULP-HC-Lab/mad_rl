@@ -13,14 +13,14 @@ from .utils.symmetry import compute_symmetry_augmented_data
 class RslRlPpoCfg(RslRlOnPolicyRunnerCfg):
     num_steps_per_env = 24
     max_iterations = 1500
-    save_interval = 500
+    save_interval = 150
     experiment_name = "mad_rl"
     policy = RslRlPpoActorCriticCfg(
         init_noise_std=1.0,
         actor_obs_normalization=False,
         critic_obs_normalization=False,
-        actor_hidden_dims=[256, 128, 128],
-        critic_hidden_dims=[256, 128, 128],
+        actor_hidden_dims=[256, 256, 128],
+        critic_hidden_dims=[256, 256, 128],
         activation="elu",
     )
     algorithm = RslRlPpoAlgorithmCfg(

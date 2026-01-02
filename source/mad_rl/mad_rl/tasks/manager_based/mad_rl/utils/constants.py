@@ -5,8 +5,7 @@ CONTROLLABLE_JOINT_NAMES = [
     ".*_ankle_.*",
 ]
 
-# Foot body names: base_17 = Left, base_18 = Right
-FOOT_BODY_NAMES = "base_1[78]"
+FOOT_BODY_NAMES = "(left|right)_ankle_roll"
 
 # Joint index mapping (12 joints total):
 #   [0]  left_hip_pitch_joint       [1]  right_hip_pitch_joint

@@ -33,6 +33,7 @@ class SceneCfg(InteractiveSceneCfg):
         prim_path="{ENV_REGEX_NS}/Robot",
         spawn=sim_utils.UsdFileCfg(
             usd_path=os.path.join(os.environ["DOCKER_MAD_ASSETS_PATH"], "models", "G1_upd", "G1.usd"),
+            variants={"Configuration": "RL"},
             activate_contact_sensors=True,
         ),
         init_state=ArticulationCfg.InitialStateCfg(
@@ -91,19 +92,19 @@ class SceneCfg(InteractiveSceneCfg):
     )
 
     torso_contact_forces = ContactSensorCfg(
-        prim_path="{ENV_REGEX_NS}/Robot/base/torso/base",
+        prim_path="{ENV_REGEX_NS}/Robot/G1_base/base/torso",
         history_length=3,
         track_air_time=False,
     )
 
     left_foot_contact_forces = ContactSensorCfg(
-        prim_path="{ENV_REGEX_NS}/Robot/base/left_ankle_roll/base",
+        prim_path="{ENV_REGEX_NS}/Robot/G1_base/base/left_ankle_roll",
         history_length=3,
         track_air_time=True,
     )
 
     right_foot_contact_forces = ContactSensorCfg(
-        prim_path="{ENV_REGEX_NS}/Robot/base/right_ankle_roll/base",
+        prim_path="{ENV_REGEX_NS}/Robot/G1_base/base/right_ankle_roll",
         history_length=3,
         track_air_time=True,
     )

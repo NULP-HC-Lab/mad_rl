@@ -62,7 +62,8 @@ class EnvCfg_PLAY(EnvCfg):
 
         self.scene.robot.init_state.pos = (0.0, 0.0, 0.81)
 
-        self.commands.base_velocity.ranges.lin_vel_x = (1.0, 1.0)
+        self.commands.base_velocity.resampling_time_range = (2.0, 2.0)
+        self.commands.base_velocity.ranges.lin_vel_x = (0.0, 1.0)
         self.commands.base_velocity.ranges.lin_vel_y = (0.0, 0.0)
         self.commands.base_velocity.ranges.ang_vel_z = (0.0, 0.0)
 

@@ -1,15 +1,13 @@
-import os
-
 from isaaclab.envs import ManagerBasedRLEnvCfg
-from isaaclab.terrains import TerrainImporterCfg
 from isaaclab.utils import configclass
 
 from .actions_cfg import ActionsCfg
 from .commands_cfg import CommandsCfg
+from .curriculum_cfg import CurriculumCfg
 from .events_cfg import EventsCfg
 from .observations_cfg import ObservationsCfg
 from .rewards_cfg import RewardsCfg
-from .scene_cfg import SceneCfg
+from .scene_cfg import RoughSceneCfg, SceneCfg
 from .terminations_cfg import TerminationsCfg
 
 
@@ -45,30 +43,30 @@ class EnvCfg(ManagerBasedRLEnvCfg):
 class EnvCfg_PLAY(EnvCfg):
     def __post_init__(self):
         super().__post_init__()
-
-        self.scene.terrain = TerrainImporterCfg(
-            prim_path="/World/ground",
-            terrain_type="usd",
-            usd_path=os.path.join(
-                os.environ["DOCKER_MAD_ASSETS_PATH"],
-                "models",
-                "floor",
-                "floor.usd",
-            ),
-            collision_group=-1,
-            debug_vis=True,
-        )
         self.scene.num_envs = 1
 
-        self.scene.robot.init_state.pos = (0.0, 0.0, 0.81)
-
         self.commands.base_velocity.resampling_time_range = (2.0, 2.0)
-        self.commands.base_velocity.ranges.lin_vel_x = (0.0, 1.0)
-        self.commands.base_velocity.ranges.lin_vel_y = (0.0, 0.0)
-        self.commands.base_velocity.ranges.ang_vel_z = (0.0, 0.0)
 
         self.events.reset_base.params["pose_range"]["x"] = (0.0, 0.0)
         self.events.reset_base.params["pose_range"]["y"] = (0.0, 0.0)
         self.events.reset_base.params["pose_range"]["yaw"] = (0.0, 0.0)
 
         self.observations.policy.enable_corruption = False
+
+
+class _RoughEnvCfgMixin:
+    scene: RoughSceneCfg = RoughSceneCfg(num_envs=4096, env_spacing=2.5)
+    curriculum: CurriculumCfg = CurriculumCfg()
+
+
+@configclass
+class RoughEnvCfg(_RoughEnvCfgMixin, EnvCfg):
+    pass
+
+
+@configclass
+class RoughEnvCfg_PLAY(_RoughEnvCfgMixin, EnvCfg_PLAY):
+    def __post_init__(self):
+        super().__post_init__()
+        self.scene.terrain.terrain_generator.curriculum = False
+        self.scene.num_envs = 6

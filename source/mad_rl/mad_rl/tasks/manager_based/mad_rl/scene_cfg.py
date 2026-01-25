@@ -43,12 +43,16 @@ class SceneCfg(InteractiveSceneCfg):
                 ".*_hip_pitch_joint": -0.20,
                 ".*_knee_joint": 0.42,
                 ".*_ankle_pitch_joint": -0.23,
+                ".*_elbow_joint": 1.134,
+                ".*_shoulder_pitch_joint": 0.261,
+                "left_shoulder_roll_joint": 0.261,
+                "right_shoulder_roll_joint": -0.261,
             },
             joint_vel={".*": 0.0},
         ),
         soft_joint_pos_limit_factor=0.9,
         actuators={
-            "lower_body": ImplicitActuatorCfg(
+            "legs": ImplicitActuatorCfg(
                 joint_names_expr=[
                     ".*_hip_yaw_joint",
                     ".*_hip_roll_joint",
@@ -86,6 +90,33 @@ class SceneCfg(InteractiveSceneCfg):
                     ".*_knee_joint": 0.01,
                     ".*_ankle_pitch_joint": 0.01,
                     ".*_ankle_roll_joint": 0.01,
+                },
+            ),
+            "arms": ImplicitActuatorCfg(
+                joint_names_expr=[
+                    ".*_elbow_joint",
+                    ".*_shoulder_pitch_joint",
+                    ".*_shoulder_roll_joint",
+                ],
+                effort_limit_sim={
+                    ".*_elbow_joint": 300,
+                    ".*_shoulder_pitch_joint": 300,
+                    ".*_shoulder_roll_joint": 300,
+                },
+                stiffness={
+                    ".*_elbow_joint": 40.0,
+                    ".*_shoulder_pitch_joint": 40.0,
+                    ".*_shoulder_roll_joint": 40.0,
+                },
+                damping={
+                    ".*_elbow_joint": 10.0,
+                    ".*_shoulder_pitch_joint": 10.0,
+                    ".*_shoulder_roll_joint": 10.0,
+                },
+                armature={
+                    ".*_elbow_joint": 0.01,
+                    ".*_shoulder_pitch_joint": 0.01,
+                    ".*_shoulder_roll_joint": 0.01,
                 },
             ),
         },

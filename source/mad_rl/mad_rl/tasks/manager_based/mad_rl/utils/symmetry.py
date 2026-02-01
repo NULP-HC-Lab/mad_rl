@@ -6,6 +6,8 @@ import torch
 from tensordict import TensorDict
 
 from .constants import (
+    CROPPED_DEPTH_IMAGE_HEIGHT,
+    CROPPED_DEPTH_IMAGE_WIDTH,
     LEFT_LEG_JOINT_INDICES,
     OBS_BASE_ANG_VEL_INDICES,
     OBS_BASE_LIN_VEL_INDICES,
@@ -73,6 +75,10 @@ def _augment_observations(obs: TensorDict) -> TensorDict:
     obs_augmented["policy"][:batch_size] = obs["policy"]
     obs_augmented["policy"][batch_size:] = _mirror_policy_observation(obs["policy"])
 
+    if "images" in obs:
+        obs_augmented["images"][:batch_size] = obs["images"]
+        obs_augmented["images"][batch_size:] = _mirror_depth_image(obs["images"])
+
     return obs_augmented
 
 
@@ -101,9 +107,10 @@ def _mirror_policy_observation(obs: torch.Tensor) -> torch.Tensor:
         - Lateral (y) components are negated
         - Roll and yaw rotations are negated
         - Left/right leg joint data is swapped
+        - Depth image is flipped horizontally
 
     Args:
-        obs: Policy observation tensor of shape (batch_size, 48).
+        obs: Policy observation tensor.
 
     Returns:
         Mirrored observation tensor with the same shape.
@@ -171,3 +178,24 @@ def _mirror_joint_data(joint_data: torch.Tensor) -> torch.Tensor:
     mirrored[..., SYMMETRY_NEGATE_JOINT_INDICES] *= -1.0
 
     return mirrored
+
+
+def _mirror_depth_image(depth_image: torch.Tensor) -> torch.Tensor:
+    """Apply left-right mirror transformation to flattened depth image.
+
+    Flips the depth image horizontally to match the sagittal plane symmetry transformation.
+
+    Args:
+        depth_image: Flattened depth image tensor of shape.
+
+    Returns:
+        Mirrored depth image tensor with the same shape (flattened).
+    """
+    batch_size = depth_image.shape[0]
+
+    depth_2d = depth_image.view(batch_size, CROPPED_DEPTH_IMAGE_HEIGHT, CROPPED_DEPTH_IMAGE_WIDTH)
+
+    # Flip horizontally (reverse along width dimension)
+    depth_flipped = torch.flip(depth_2d, dims=[2])
+
+    return depth_flipped.view(batch_size, -1)

@@ -5,7 +5,8 @@ from isaaclab.utils import configclass
 from isaaclab.utils.noise import AdditiveUniformNoiseCfg as Unoise
 from isaaclab_tasks.manager_based.locomotion.velocity import mdp
 
-from .utils.constants import CONTROLLABLE_JOINT_NAMES
+from .utils.constants import OBSERVABLE_JOINT_NAMES
+from .utils.observations import depth_image
 
 
 @configclass
@@ -38,7 +39,7 @@ class ObservationsCfg:
             params={
                 "asset_cfg": SceneEntityCfg(
                     "robot",
-                    joint_names=CONTROLLABLE_JOINT_NAMES,
+                    joint_names=OBSERVABLE_JOINT_NAMES,
                 )
             },
         )
@@ -49,7 +50,7 @@ class ObservationsCfg:
             params={
                 "asset_cfg": SceneEntityCfg(
                     "robot",
-                    joint_names=CONTROLLABLE_JOINT_NAMES,
+                    joint_names=OBSERVABLE_JOINT_NAMES,
                 )
             },
         )
@@ -62,4 +63,13 @@ class ObservationsCfg:
             self.enable_corruption = True
             self.concatenate_terms = True
 
+    @configclass
+    class ImagesCfg(ObsGroup):
+        depth_image = ObsTerm(
+            func=depth_image,
+            scale=1.0,
+            clip=(0.0, 2.0),
+        )
+
     policy: PolicyCfg = PolicyCfg()
+    images: ImagesCfg = ImagesCfg()

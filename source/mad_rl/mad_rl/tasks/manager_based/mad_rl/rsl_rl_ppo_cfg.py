@@ -15,6 +15,10 @@ class RslRlPpoCfg(RslRlOnPolicyRunnerCfg):
     max_iterations = 1500
     save_interval = 150
     experiment_name = "mad_rl"
+    obs_groups = {
+        "policy": ["policy", "images"],
+        "critic": ["policy", "images"],
+    }
     policy = RslRlPpoActorCriticCfg(
         init_noise_std=1.0,
         actor_obs_normalization=False,

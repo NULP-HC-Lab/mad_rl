@@ -37,6 +37,8 @@ class EnvCfg(ManagerBasedRLEnvCfg):
             self.scene.left_foot_contact_forces.update_period = self.sim.dt
         if self.scene.right_foot_contact_forces is not None:
             self.scene.right_foot_contact_forces.update_period = self.sim.dt
+        if self.scene.camera is not None:
+            self.scene.camera.update_period = self.decimation * self.sim.dt
 
 
 @configclass
@@ -68,5 +70,4 @@ class RoughEnvCfg(_RoughEnvCfgMixin, EnvCfg):
 class RoughEnvCfg_PLAY(_RoughEnvCfgMixin, EnvCfg_PLAY):
     def __post_init__(self):
         super().__post_init__()
-        self.scene.terrain.terrain_generator.curriculum = False
         self.scene.num_envs = 6

@@ -7,8 +7,8 @@ from isaaclab.assets import ArticulationCfg, AssetBaseCfg
 from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.sensors import (
     ContactSensorCfg,
-    MultiMeshRayCasterCameraCfg,
-    RayCasterCameraCfg,
+    MultiMeshRayCasterCfg,
+    RayCasterCfg,
     patterns,
 )
 from isaaclab.terrains import TerrainImporterCfg
@@ -146,26 +146,13 @@ class SceneCfg(InteractiveSceneCfg):
         track_air_time=True,
     )
 
-    camera = MultiMeshRayCasterCameraCfg(
-        prim_path="{ENV_REGEX_NS}/Robot/G1_base/base/torso/d435i",
+    height_scanner = MultiMeshRayCasterCfg(
+        prim_path="{ENV_REGEX_NS}/Robot/G1_base/base/pelvis",
+        offset=RayCasterCfg.OffsetCfg(pos=(0.625, 0.0, 0.0)),
+        ray_alignment="yaw",
+        pattern_cfg=patterns.GridPatternCfg(resolution=0.1, size=[0.55, 1.0], ordering="yx"),
         debug_vis=False,
-        mesh_prim_paths=[
-            "/World/ground",
-        ],
-        ray_alignment="base",
-        pattern_cfg=patterns.PinholeCameraPatternCfg(
-            focal_length=5,
-            horizontal_aperture=9.48965,
-            vertical_aperture=5.54309,
-            width=41,
-            height=24,
-        ),
-        offset=RayCasterCameraCfg.OffsetCfg(  # Nearest parent rigid body frame is a reference frame
-            pos=(0.0585, 0.0, 0.4285),
-            rot=(0.9149596678, 0.0, 0.4035452964, 0.0),
-            convention="world",
-        ),
-        depth_clipping_behavior="zero",
+        mesh_prim_paths=["/World/ground"],
     )
 
     sky_light = AssetBaseCfg(

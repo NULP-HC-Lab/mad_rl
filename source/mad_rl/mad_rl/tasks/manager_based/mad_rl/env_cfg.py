@@ -37,8 +37,8 @@ class EnvCfg(ManagerBasedRLEnvCfg):
             self.scene.left_foot_contact_forces.update_period = self.sim.dt
         if self.scene.right_foot_contact_forces is not None:
             self.scene.right_foot_contact_forces.update_period = self.sim.dt
-        if self.scene.camera is not None:
-            self.scene.camera.update_period = self.decimation * self.sim.dt
+        if self.scene.height_scanner is not None:
+            self.scene.height_scanner.update_period = self.decimation * self.sim.dt
 
 
 @configclass

@@ -12,12 +12,12 @@ from .utils.symmetry import compute_symmetry_augmented_data
 @configclass
 class RslRlPpoCfg(RslRlOnPolicyRunnerCfg):
     num_steps_per_env = 24
-    max_iterations = 1500
+    max_iterations = 3000
     save_interval = 150
     experiment_name = "mad_rl"
     obs_groups = {
-        "policy": ["policy", "images"],
-        "critic": ["policy", "images"],
+        "policy": ["policy", "height_scan"],
+        "critic": ["policy", "height_scan"],
     }
     policy = RslRlPpoActorCriticCfg(
         init_noise_std=1.0,

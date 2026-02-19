@@ -6,8 +6,6 @@ import torch
 from tensordict import TensorDict
 
 from .constants import (
-    CROPPED_DEPTH_IMAGE_HEIGHT,
-    CROPPED_DEPTH_IMAGE_WIDTH,
     LEFT_LEG_JOINT_INDICES,
     OBS_BASE_ANG_VEL_INDICES,
     OBS_BASE_LIN_VEL_INDICES,
@@ -75,9 +73,9 @@ def _augment_observations(obs: TensorDict) -> TensorDict:
     obs_augmented["policy"][:batch_size] = obs["policy"]
     obs_augmented["policy"][batch_size:] = _mirror_policy_observation(obs["policy"])
 
-    if "images" in obs:
-        obs_augmented["images"][:batch_size] = obs["images"]
-        obs_augmented["images"][batch_size:] = _mirror_depth_image(obs["images"])
+    if "height_scan" in obs:
+        obs_augmented["height_scan"][:batch_size] = obs["height_scan"]
+        obs_augmented["height_scan"][batch_size:] = _mirror_height_scan(obs["height_scan"])
 
     return obs_augmented
 
@@ -180,22 +178,15 @@ def _mirror_joint_data(joint_data: torch.Tensor) -> torch.Tensor:
     return mirrored
 
 
-def _mirror_depth_image(depth_image: torch.Tensor) -> torch.Tensor:
-    """Apply left-right mirror transformation to flattened depth image.
+def _mirror_height_scan(height_scan: torch.Tensor) -> torch.Tensor:
+    """Apply left-right mirror transformation to height scan.
 
-    Flips the depth image horizontally to match the sagittal plane symmetry transformation.
+    Flips the height scan horizontally to match the sagittal plane symmetry transformation.
 
     Args:
-        depth_image: Flattened depth image tensor of shape.
+        height_scan: Height scan tensor.
 
     Returns:
-        Mirrored depth image tensor with the same shape (flattened).
+        Mirrored height scan tensor.
     """
-    batch_size = depth_image.shape[0]
-
-    depth_2d = depth_image.view(batch_size, CROPPED_DEPTH_IMAGE_HEIGHT, CROPPED_DEPTH_IMAGE_WIDTH)
-
-    # Flip horizontally (reverse along width dimension)
-    depth_flipped = torch.flip(depth_2d, dims=[2])
-
-    return depth_flipped.view(batch_size, -1)
+    return height_scan.clone().view(-1, 6, 11).flip(dims=[2]).view(-1, 6 * 11)

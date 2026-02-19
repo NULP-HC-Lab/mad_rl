@@ -6,7 +6,7 @@ from isaaclab.utils.noise import AdditiveUniformNoiseCfg as Unoise
 from isaaclab_tasks.manager_based.locomotion.velocity import mdp
 
 from .utils.constants import OBSERVABLE_JOINT_NAMES
-from .utils.observations import depth_image
+from .utils.observations import height_scan
 
 
 @configclass
@@ -64,12 +64,13 @@ class ObservationsCfg:
             self.concatenate_terms = True
 
     @configclass
-    class ImagesCfg(ObsGroup):
-        depth_image = ObsTerm(
-            func=depth_image,
-            scale=1.0,
-            clip=(0.0, 2.0),
+    class HeightScanCfg(ObsGroup):
+        height_scan = ObsTerm(
+            func=height_scan,
+            params={"sensor_cfg": SceneEntityCfg("height_scanner")},
+            noise=Unoise(n_min=-0.1, n_max=0.1),
+            clip=(-1.0, 1.0),
         )
 
     policy: PolicyCfg = PolicyCfg()
-    images: ImagesCfg = ImagesCfg()
+    height_scan: HeightScanCfg = HeightScanCfg()

@@ -72,5 +72,19 @@ class ObservationsCfg:
             clip=(-1.0, 1.0),
         )
 
+    @configclass
+    class CriticPolicyCfg(PolicyCfg):
+        def __post_init__(self):
+            super().__post_init__()
+            self.enable_corruption = False
+
+    @configclass
+    class CriticHeightScanCfg(HeightScanCfg):
+        def __post_init__(self):
+            super().__post_init__()
+            self.enable_corruption = False
+
     policy: PolicyCfg = PolicyCfg()
     height_scan: HeightScanCfg = HeightScanCfg()
+    critic_policy: CriticPolicyCfg = CriticPolicyCfg()
+    critic_height_scan: CriticHeightScanCfg = CriticHeightScanCfg()

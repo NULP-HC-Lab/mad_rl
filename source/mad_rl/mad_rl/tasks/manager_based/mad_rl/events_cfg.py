@@ -26,7 +26,7 @@ class EventsCfg:
         params={
             "pose_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "yaw": (-3.14, 3.14)},
             "velocity_range": {
-                "x": (0.0, 0.0),
+                "x": (0.0, 1.0),
                 "y": (0.0, 0.0),
                 "z": (0.0, 0.0),
                 "roll": (0.0, 0.0),
@@ -50,4 +50,15 @@ class EventsCfg:
     apply_default_joint_position_term = EventTerm(
         func=apply_default_joint_position,
         mode="startup",
+    )
+
+    push_by_setting_velocity = EventTerm(
+        func=mdp.push_by_setting_velocity,
+        mode="interval",
+        interval_range_s=(0.0, 5.0),
+        params={
+            "velocity_range": {
+                "x": (0.0, 1.0),
+            }
+        },
     )

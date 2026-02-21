@@ -26,11 +26,6 @@ class RewardsCfg:
         params={"command_name": "base_velocity", "std": 0.5},
     )
 
-    lin_vel_z_l2 = RewTerm(
-        func=mdp.lin_vel_z_l2,
-        weight=-0.2,
-    )
-
     ang_vel_xy_l2 = RewTerm(
         func=mdp.ang_vel_xy_l2,
         weight=-0.05,
@@ -38,13 +33,13 @@ class RewardsCfg:
 
     dof_torques_l2 = RewTerm(
         func=mdp.joint_torques_l2,
-        weight=-2.0e-6,
+        weight=-1.5e-7,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_.*", ".*_knee_joint"])},
     )
 
     dof_acc_l2 = RewTerm(
         func=mdp.joint_acc_l2,
-        weight=-1.0e-7,
+        weight=-1.25e-7,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_.*", ".*_knee_joint"])},
     )
 
@@ -89,4 +84,10 @@ class RewardsCfg:
         func=mdp.joint_deviation_l1,
         weight=-1.0,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_yaw_joint", ".*_hip_roll_joint"])},
+    )
+
+    joint_deviation_torso = RewTerm(
+        func=mdp.joint_deviation_l1,
+        weight=-0.25,
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names=["waist_.*"])},
     )

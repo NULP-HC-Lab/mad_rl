@@ -71,4 +71,4 @@ class RoughEnvCfg(_RoughEnvCfgMixin, EnvCfg):
 class RoughEnvCfg_PLAY(_RoughEnvCfgMixin, EnvCfg_PLAY):
     def __post_init__(self):
         super().__post_init__()
-        self.scene.num_envs = 6
+        self.scene.num_envs = 9

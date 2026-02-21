@@ -21,10 +21,11 @@ class RslRlPpoCfg(RslRlOnPolicyRunnerCfg):
     }
     policy = RslRlPpoActorCriticCfg(
         init_noise_std=1.0,
-        actor_obs_normalization=False,
-        critic_obs_normalization=False,
-        actor_hidden_dims=[256, 256, 128],
-        critic_hidden_dims=[256, 256, 128],
+        noise_std_type="log",
+        actor_obs_normalization=True,
+        critic_obs_normalization=True,
+        actor_hidden_dims=[256, 128, 128],
+        critic_hidden_dims=[256, 128, 128],
         activation="elu",
     )
     algorithm = RslRlPpoAlgorithmCfg(

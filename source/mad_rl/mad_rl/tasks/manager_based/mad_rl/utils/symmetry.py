@@ -189,4 +189,4 @@ def _mirror_height_scan(height_scan: torch.Tensor) -> torch.Tensor:
     Returns:
         Mirrored height scan tensor.
     """
-    return height_scan.clone().view(-1, 6, 11).flip(dims=[2]).view(-1, 6 * 11)
+    return height_scan.clone().view(-1, 5, 11).flip(dims=[2]).view(-1, 5 * 11)

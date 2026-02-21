@@ -148,9 +148,9 @@ class SceneCfg(InteractiveSceneCfg):
 
     height_scanner = MultiMeshRayCasterCfg(
         prim_path="{ENV_REGEX_NS}/Robot/G1_base/base/pelvis",
-        offset=RayCasterCfg.OffsetCfg(pos=(0.625, 0.0, 0.0)),
+        offset=RayCasterCfg.OffsetCfg(pos=(0.3, 0.0, 0.0)),
         ray_alignment="yaw",
-        pattern_cfg=patterns.GridPatternCfg(resolution=0.1, size=[0.55, 1.0], ordering="yx"),
+        pattern_cfg=patterns.GridPatternCfg(resolution=0.1, size=[0.4, 1.0], ordering="yx"),
         debug_vis=False,
         mesh_prim_paths=["/World/ground"],
     )

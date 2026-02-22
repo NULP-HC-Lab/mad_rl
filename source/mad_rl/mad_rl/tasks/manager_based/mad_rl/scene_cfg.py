@@ -15,6 +15,8 @@ from isaaclab.terrains import TerrainImporterCfg
 from isaaclab.utils import configclass
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR, ISAACLAB_NUCLEUS_DIR
 
+from .utils.constants import HEIGHT_SCAN_RESOLUTION, HEIGHT_SCAN_SIZE
+
 
 @configclass
 class SceneCfg(InteractiveSceneCfg):
@@ -150,7 +152,7 @@ class SceneCfg(InteractiveSceneCfg):
         prim_path="{ENV_REGEX_NS}/Robot/G1_base/base/pelvis",
         offset=RayCasterCfg.OffsetCfg(pos=(0.3, 0.0, 0.0)),
         ray_alignment="yaw",
-        pattern_cfg=patterns.GridPatternCfg(resolution=0.1, size=[0.4, 1.0], ordering="yx"),
+        pattern_cfg=patterns.GridPatternCfg(resolution=HEIGHT_SCAN_RESOLUTION, size=HEIGHT_SCAN_SIZE, ordering="yx"),
         debug_vis=False,
         mesh_prim_paths=["/World/ground"],
     )

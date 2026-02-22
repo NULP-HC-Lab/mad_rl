@@ -59,12 +59,6 @@ class ObservationsCfg:
             func=mdp.last_action,
         )
 
-        def __post_init__(self):
-            self.enable_corruption = True
-            self.concatenate_terms = True
-
-    @configclass
-    class HeightScanCfg(ObsGroup):
         height_scan = ObsTerm(
             func=height_scan,
             params={"sensor_cfg": SceneEntityCfg("height_scanner")},
@@ -72,19 +66,15 @@ class ObservationsCfg:
             clip=(-1.0, 1.0),
         )
 
-    @configclass
-    class CriticPolicyCfg(PolicyCfg):
         def __post_init__(self):
-            super().__post_init__()
-            self.enable_corruption = False
+            self.enable_corruption = True
+            self.concatenate_terms = True
 
     @configclass
-    class CriticHeightScanCfg(HeightScanCfg):
+    class CriticCfg(PolicyCfg):
         def __post_init__(self):
             super().__post_init__()
             self.enable_corruption = False
 
     policy: PolicyCfg = PolicyCfg()
-    height_scan: HeightScanCfg = HeightScanCfg()
-    critic_policy: CriticPolicyCfg = CriticPolicyCfg()
-    critic_height_scan: CriticHeightScanCfg = CriticHeightScanCfg()
+    critic: CriticCfg = CriticCfg()

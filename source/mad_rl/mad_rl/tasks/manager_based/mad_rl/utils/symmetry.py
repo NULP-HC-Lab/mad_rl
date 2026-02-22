@@ -6,12 +6,15 @@ import torch
 from tensordict import TensorDict
 
 from .constants import (
+    HEIGHT_SCAN_NUM_COLS,
+    HEIGHT_SCAN_NUM_ROWS,
     LEFT_LEG_JOINT_INDICES,
     OBS_BASE_ANG_VEL_INDICES,
     OBS_BASE_LIN_VEL_INDICES,
+    OBS_HEIGHT_SCAN_INDICES,
     OBS_JOINT_POSITIONS_INDICES,
     OBS_JOINT_VELOCITIES_INDICES,
-    OBS_PREVIOUS_ACTIONS_INDICES,
+    OBS_PREVIOUS_ACTION_INDICES,
     OBS_PROJECTED_GRAVITY_INDICES,
     OBS_VELOCITY_COMMANDS_INDICES,
     RIGHT_LEG_JOINT_INDICES,
@@ -73,10 +76,6 @@ def _augment_observations(obs: TensorDict) -> TensorDict:
     obs_augmented["policy"][:batch_size] = obs["policy"]
     obs_augmented["policy"][batch_size:] = _mirror_policy_observation(obs["policy"])
 
-    if "height_scan" in obs:
-        obs_augmented["height_scan"][:batch_size] = obs["height_scan"]
-        obs_augmented["height_scan"][batch_size:] = _mirror_height_scan(obs["height_scan"])
-
     return obs_augmented
 
 
@@ -136,7 +135,10 @@ def _mirror_policy_observation(obs: torch.Tensor) -> torch.Tensor:
     # Joint data: swap left/right and negate asymmetric joints
     obs[:, OBS_JOINT_POSITIONS_INDICES] = _mirror_joint_data(obs[:, OBS_JOINT_POSITIONS_INDICES])
     obs[:, OBS_JOINT_VELOCITIES_INDICES] = _mirror_joint_data(obs[:, OBS_JOINT_VELOCITIES_INDICES])
-    obs[:, OBS_PREVIOUS_ACTIONS_INDICES] = _mirror_joint_data(obs[:, OBS_PREVIOUS_ACTIONS_INDICES])
+    obs[:, OBS_PREVIOUS_ACTION_INDICES] = _mirror_joint_data(obs[:, OBS_PREVIOUS_ACTION_INDICES])
+
+    if obs.shape[1] > OBS_PREVIOUS_ACTION_INDICES.stop:
+        obs[:, OBS_HEIGHT_SCAN_INDICES] = _mirror_height_scan(obs[:, OBS_HEIGHT_SCAN_INDICES])
 
     return obs
 
@@ -189,4 +191,9 @@ def _mirror_height_scan(height_scan: torch.Tensor) -> torch.Tensor:
     Returns:
         Mirrored height scan tensor.
     """
-    return height_scan.clone().view(-1, 5, 11).flip(dims=[2]).view(-1, 5 * 11)
+    return (
+        height_scan.clone()
+        .view(-1, HEIGHT_SCAN_NUM_ROWS, HEIGHT_SCAN_NUM_COLS)
+        .flip(dims=[2])
+        .view(-1, HEIGHT_SCAN_NUM_ROWS * HEIGHT_SCAN_NUM_COLS)
+    )

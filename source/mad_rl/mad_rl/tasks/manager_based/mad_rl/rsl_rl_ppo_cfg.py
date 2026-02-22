@@ -16,8 +16,8 @@ class RslRlPpoCfg(RslRlOnPolicyRunnerCfg):
     save_interval = 150
     experiment_name = "mad_rl"
     obs_groups = {
-        "policy": ["policy", "height_scan"],
-        "critic": ["critic_policy", "critic_height_scan"],
+        "policy": ["policy"],
+        "critic": ["critic"],
     }
     policy = RslRlPpoActorCriticCfg(
         init_noise_std=1.0,

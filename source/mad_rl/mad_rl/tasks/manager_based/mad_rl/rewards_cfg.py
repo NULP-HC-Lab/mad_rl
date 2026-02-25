@@ -4,7 +4,13 @@ from isaaclab.utils import configclass
 from isaaclab_tasks.manager_based.locomotion.velocity import mdp
 
 from .utils.constants import FOOT_BODY_NAMES
-from .utils.rewards import feet_air_time_positive_biped, feet_slide, jump
+from .utils.rewards import (
+    feet_air_time_positive_biped,
+    feet_slide,
+    horizontal_contact_forces,
+    jump,
+    vertical_contact_forces,
+)
 
 
 @configclass
@@ -22,7 +28,7 @@ class RewardsCfg:
 
     track_ang_vel_z_exp = RewTerm(
         func=mdp.track_ang_vel_z_world_exp,
-        weight=1.0,
+        weight=1.5,
         params={"command_name": "base_velocity", "std": 0.5},
     )
 
@@ -55,7 +61,7 @@ class RewardsCfg:
             "command_name": "base_velocity",
             "left_foot_sensor_cfg": SceneEntityCfg("left_foot_contact_forces"),
             "right_foot_sensor_cfg": SceneEntityCfg("right_foot_contact_forces"),
-            "threshold": 0.2,
+            "threshold": 0.15,
         },
     )
 
@@ -66,6 +72,24 @@ class RewardsCfg:
             "left_foot_sensor_cfg": SceneEntityCfg("left_foot_contact_forces"),
             "right_foot_sensor_cfg": SceneEntityCfg("right_foot_contact_forces"),
             "asset_cfg": SceneEntityCfg("robot", body_names=FOOT_BODY_NAMES),
+        },
+    )
+
+    vertical_contact_forces = RewTerm(
+        func=vertical_contact_forces,
+        weight=0.05,
+        params={
+            "left_foot_contact_sensor_cfg": SceneEntityCfg("left_foot_contact_forces"),
+            "right_foot_contact_sensor_cfg": SceneEntityCfg("right_foot_contact_forces"),
+        },
+    )
+
+    horizontal_contact_forces = RewTerm(
+        func=horizontal_contact_forces,
+        weight=-1.0,
+        params={
+            "left_foot_contact_sensor_cfg": SceneEntityCfg("left_foot_contact_forces"),
+            "right_foot_contact_sensor_cfg": SceneEntityCfg("right_foot_contact_forces"),
         },
     )
 
@@ -93,6 +117,12 @@ class RewardsCfg:
         func=mdp.joint_deviation_l1,
         weight=-1.0,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_yaw_joint", ".*_hip_roll_joint"])},
+    )
+
+    joint_deviation_knee = RewTerm(
+        func=mdp.joint_deviation_l1,
+        weight=-0.2,
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_knee_joint"])},
     )
 
     joint_deviation_torso = RewTerm(

@@ -52,6 +52,7 @@ class EnvCfg_PLAY(EnvCfg):
         self.events.reset_base.params["pose_range"]["x"] = (0.0, 0.0)
         self.events.reset_base.params["pose_range"]["y"] = (0.0, 0.0)
         self.events.reset_base.params["pose_range"]["yaw"] = (0.0, 0.0)
+        self.commands.base_velocity.ranges.lin_vel_x = (0.6, 0.6)
         self.events.push_by_setting_velocity = None
 
         self.observations.policy.enable_corruption = False

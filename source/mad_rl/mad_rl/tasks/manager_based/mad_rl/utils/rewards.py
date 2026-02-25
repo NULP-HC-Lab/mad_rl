@@ -1,4 +1,5 @@
 import torch
+from isaaclab.envs import ManagerBasedRLEnv
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.sensors import ContactSensor
 
@@ -82,3 +83,21 @@ def feet_slide(
     body_vel = asset.data.body_lin_vel_w[:, asset_cfg.body_ids, :2]
     reward = torch.sum(body_vel.norm(dim=-1) * contacts, dim=1)
     return reward
+
+
+def jump(
+    env: ManagerBasedRLEnv,
+    left_foot_contact_sensor_cfg: SceneEntityCfg,
+    right_foot_contact_sensor_cfg: SceneEntityCfg,
+) -> torch.Tensor:
+    """Penalize jumping."""
+    left_sensor: ContactSensor = env.scene.sensors[left_foot_contact_sensor_cfg.name]
+    right_sensor: ContactSensor = env.scene.sensors[right_foot_contact_sensor_cfg.name]
+    air_time = torch.cat(
+        [
+            left_sensor.data.current_air_time,
+            right_sensor.data.current_air_time,
+        ],
+        dim=1,
+    )
+    return air_time.min(dim=1)[0]

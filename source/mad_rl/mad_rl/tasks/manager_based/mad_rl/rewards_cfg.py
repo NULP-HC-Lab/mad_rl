@@ -4,7 +4,7 @@ from isaaclab.utils import configclass
 from isaaclab_tasks.manager_based.locomotion.velocity import mdp
 
 from .utils.constants import FOOT_BODY_NAMES
-from .utils.rewards import feet_air_time_positive_biped, feet_slide
+from .utils.rewards import feet_air_time_positive_biped, feet_slide, jump
 
 
 @configclass
@@ -66,6 +66,15 @@ class RewardsCfg:
             "left_foot_sensor_cfg": SceneEntityCfg("left_foot_contact_forces"),
             "right_foot_sensor_cfg": SceneEntityCfg("right_foot_contact_forces"),
             "asset_cfg": SceneEntityCfg("robot", body_names=FOOT_BODY_NAMES),
+        },
+    )
+
+    jump = RewTerm(
+        func=jump,
+        weight=-10.0,
+        params={
+            "left_foot_contact_sensor_cfg": SceneEntityCfg("left_foot_contact_forces"),
+            "right_foot_contact_sensor_cfg": SceneEntityCfg("right_foot_contact_forces"),
         },
     )
 

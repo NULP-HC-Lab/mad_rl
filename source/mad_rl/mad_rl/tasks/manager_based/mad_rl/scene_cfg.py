@@ -5,12 +5,7 @@ import isaaclab.terrains as terrain_gen
 from isaaclab.actuators import ImplicitActuatorCfg
 from isaaclab.assets import ArticulationCfg, AssetBaseCfg
 from isaaclab.scene import InteractiveSceneCfg
-from isaaclab.sensors import (
-    ContactSensorCfg,
-    MultiMeshRayCasterCfg,
-    RayCasterCfg,
-    patterns,
-)
+from isaaclab.sensors import ContactSensorCfg, RayCasterCfg, patterns
 from isaaclab.terrains import TerrainImporterCfg
 from isaaclab.utils import configclass
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR, ISAACLAB_NUCLEUS_DIR
@@ -148,7 +143,7 @@ class SceneCfg(InteractiveSceneCfg):
         track_air_time=True,
     )
 
-    height_scanner = MultiMeshRayCasterCfg(
+    height_scanner = RayCasterCfg(
         prim_path="{ENV_REGEX_NS}/Robot/G1_base/base/pelvis",
         offset=RayCasterCfg.OffsetCfg(pos=(0.3, 0.0, 0.0)),
         ray_alignment="yaw",

@@ -3,6 +3,8 @@ from isaaclab.managers import SceneEntityCfg
 from isaaclab.utils import configclass
 from isaaclab_tasks.manager_based.locomotion.velocity import mdp
 
+from .utils.events import apply_default_joint_position
+
 
 @configclass
 class EventsCfg:
@@ -24,7 +26,7 @@ class EventsCfg:
         params={
             "pose_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "yaw": (-3.14, 3.14)},
             "velocity_range": {
-                "x": (0.0, 0.0),
+                "x": (0.0, 1.0),
                 "y": (0.0, 0.0),
                 "z": (0.0, 0.0),
                 "roll": (0.0, 0.0),
@@ -40,5 +42,23 @@ class EventsCfg:
         params={
             "position_range": (1.0, 1.0),
             "velocity_range": (0.0, 0.0),
+        },
+    )
+
+    # By default, Isaac Lab doesn't apply the default joint position targets to the joints
+    # that are not controllable.
+    apply_default_joint_position_term = EventTerm(
+        func=apply_default_joint_position,
+        mode="startup",
+    )
+
+    push_by_setting_velocity = EventTerm(
+        func=mdp.push_by_setting_velocity,
+        mode="interval",
+        interval_range_s=(0.0, 5.0),
+        params={
+            "velocity_range": {
+                "x": (0.0, 1.0),
+            }
         },
     )

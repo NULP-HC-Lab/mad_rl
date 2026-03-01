@@ -12,15 +12,20 @@ from .utils.symmetry import compute_symmetry_augmented_data
 @configclass
 class RslRlPpoCfg(RslRlOnPolicyRunnerCfg):
     num_steps_per_env = 24
-    max_iterations = 1500
+    max_iterations = 3000
     save_interval = 150
     experiment_name = "mad_rl"
+    obs_groups = {
+        "policy": ["policy"],
+        "critic": ["critic"],
+    }
     policy = RslRlPpoActorCriticCfg(
         init_noise_std=1.0,
-        actor_obs_normalization=False,
-        critic_obs_normalization=False,
-        actor_hidden_dims=[256, 256, 128],
-        critic_hidden_dims=[256, 256, 128],
+        noise_std_type="log",
+        actor_obs_normalization=True,
+        critic_obs_normalization=True,
+        actor_hidden_dims=[256, 128, 128],
+        critic_hidden_dims=[256, 128, 128],
         activation="elu",
     )
     algorithm = RslRlPpoAlgorithmCfg(

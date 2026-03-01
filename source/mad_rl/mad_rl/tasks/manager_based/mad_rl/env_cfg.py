@@ -37,6 +37,8 @@ class EnvCfg(ManagerBasedRLEnvCfg):
             self.scene.left_foot_contact_forces.update_period = self.sim.dt
         if self.scene.right_foot_contact_forces is not None:
             self.scene.right_foot_contact_forces.update_period = self.sim.dt
+        if self.scene.height_scanner is not None:
+            self.scene.height_scanner.update_period = self.decimation * self.sim.dt
 
 
 @configclass
@@ -50,6 +52,8 @@ class EnvCfg_PLAY(EnvCfg):
         self.events.reset_base.params["pose_range"]["x"] = (0.0, 0.0)
         self.events.reset_base.params["pose_range"]["y"] = (0.0, 0.0)
         self.events.reset_base.params["pose_range"]["yaw"] = (0.0, 0.0)
+        self.commands.base_velocity.ranges.lin_vel_x = (0.6, 0.6)
+        self.events.push_by_setting_velocity = None
 
         self.observations.policy.enable_corruption = False
 
@@ -68,5 +72,4 @@ class RoughEnvCfg(_RoughEnvCfgMixin, EnvCfg):
 class RoughEnvCfg_PLAY(_RoughEnvCfgMixin, EnvCfg_PLAY):
     def __post_init__(self):
         super().__post_init__()
-        self.scene.terrain.terrain_generator.curriculum = False
-        self.scene.num_envs = 6
+        self.scene.num_envs = 9

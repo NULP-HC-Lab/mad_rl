@@ -5,7 +5,8 @@ from isaaclab.utils import configclass
 from isaaclab.utils.noise import AdditiveUniformNoiseCfg as Unoise
 from isaaclab_tasks.manager_based.locomotion.velocity import mdp
 
-from .utils.constants import CONTROLLABLE_JOINT_NAMES
+from .utils.constants import OBSERVABLE_JOINT_NAMES
+from .utils.observations import height_scan
 
 
 @configclass
@@ -38,7 +39,7 @@ class ObservationsCfg:
             params={
                 "asset_cfg": SceneEntityCfg(
                     "robot",
-                    joint_names=CONTROLLABLE_JOINT_NAMES,
+                    joint_names=OBSERVABLE_JOINT_NAMES,
                 )
             },
         )
@@ -49,7 +50,7 @@ class ObservationsCfg:
             params={
                 "asset_cfg": SceneEntityCfg(
                     "robot",
-                    joint_names=CONTROLLABLE_JOINT_NAMES,
+                    joint_names=OBSERVABLE_JOINT_NAMES,
                 )
             },
         )
@@ -58,8 +59,22 @@ class ObservationsCfg:
             func=mdp.last_action,
         )
 
+        height_scan = ObsTerm(
+            func=height_scan,
+            params={"sensor_cfg": SceneEntityCfg("height_scanner")},
+            noise=Unoise(n_min=-0.1, n_max=0.1),
+            clip=(-1.0, 1.0),
+        )
+
         def __post_init__(self):
             self.enable_corruption = True
             self.concatenate_terms = True
 
+    @configclass
+    class CriticCfg(PolicyCfg):
+        def __post_init__(self):
+            super().__post_init__()
+            self.enable_corruption = False
+
     policy: PolicyCfg = PolicyCfg()
+    critic: CriticCfg = CriticCfg()

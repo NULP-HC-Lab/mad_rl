@@ -1,4 +1,5 @@
 import torch
+from isaaclab.envs import ManagerBasedRLEnv
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.sensors import ContactSensor
 
@@ -82,3 +83,63 @@ def feet_slide(
     body_vel = asset.data.body_lin_vel_w[:, asset_cfg.body_ids, :2]
     reward = torch.sum(body_vel.norm(dim=-1) * contacts, dim=1)
     return reward
+
+
+def vertical_contact_forces(
+    env: ManagerBasedRLEnv,
+    left_foot_contact_sensor_cfg: SceneEntityCfg,
+    right_foot_contact_sensor_cfg: SceneEntityCfg,
+    eps: float = 1e-6,
+    min_contact_time: float = 0.03,
+):
+    """Reward vertical contact forces."""
+    left_sensor: ContactSensor = env.scene.sensors[left_foot_contact_sensor_cfg.name]
+    right_sensor: ContactSensor = env.scene.sensors[right_foot_contact_sensor_cfg.name]
+
+    def calculate_vertical_contact_force(sensor: ContactSensor):
+        in_contact = (sensor.data.current_contact_time > min_contact_time).squeeze()
+        vertical_contact_force = torch.clamp(sensor.data.net_forces_w[:, 0, 2], min=0.0)
+        force_magnitude = sensor.data.net_forces_w[:, 0, :].norm(dim=-1) + eps
+        normalized_vertical_contact_force = vertical_contact_force / force_magnitude
+        return torch.where(in_contact, normalized_vertical_contact_force, 0.0)
+
+    return calculate_vertical_contact_force(left_sensor) + calculate_vertical_contact_force(right_sensor)
+
+
+def horizontal_contact_forces(
+    env: ManagerBasedRLEnv,
+    left_foot_contact_sensor_cfg: SceneEntityCfg,
+    right_foot_contact_sensor_cfg: SceneEntityCfg,
+    eps: float = 1e-6,
+    min_contact_time: float = 0.03,
+):
+    """Penalize horizontal contact forces."""
+    left_sensor: ContactSensor = env.scene.sensors[left_foot_contact_sensor_cfg.name]
+    right_sensor: ContactSensor = env.scene.sensors[right_foot_contact_sensor_cfg.name]
+
+    def calculate_horizontal_contact_force(sensor: ContactSensor):
+        in_contact = (sensor.data.current_contact_time > min_contact_time).squeeze()
+        horizontal_contact_force = torch.norm(sensor.data.net_forces_w[:, 0, :2], dim=-1)
+        force_magnitude = sensor.data.net_forces_w[:, 0, :].norm(dim=-1) + eps
+        normalized_horizontal_contact_force = horizontal_contact_force / force_magnitude
+        return torch.where(in_contact, normalized_horizontal_contact_force, 0.0)
+
+    return calculate_horizontal_contact_force(left_sensor) + calculate_horizontal_contact_force(right_sensor)
+
+
+def jump(
+    env: ManagerBasedRLEnv,
+    left_foot_contact_sensor_cfg: SceneEntityCfg,
+    right_foot_contact_sensor_cfg: SceneEntityCfg,
+) -> torch.Tensor:
+    """Penalize jumping."""
+    left_sensor: ContactSensor = env.scene.sensors[left_foot_contact_sensor_cfg.name]
+    right_sensor: ContactSensor = env.scene.sensors[right_foot_contact_sensor_cfg.name]
+    air_time = torch.cat(
+        [
+            left_sensor.data.current_air_time,
+            right_sensor.data.current_air_time,
+        ],
+        dim=1,
+    )
+    return air_time.min(dim=1)[0]

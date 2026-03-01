@@ -6,12 +6,15 @@ import torch
 from tensordict import TensorDict
 
 from .constants import (
+    HEIGHT_SCAN_NUM_COLS,
+    HEIGHT_SCAN_NUM_ROWS,
     LEFT_LEG_JOINT_INDICES,
     OBS_BASE_ANG_VEL_INDICES,
     OBS_BASE_LIN_VEL_INDICES,
+    OBS_HEIGHT_SCAN_INDICES,
     OBS_JOINT_POSITIONS_INDICES,
     OBS_JOINT_VELOCITIES_INDICES,
-    OBS_PREVIOUS_ACTIONS_INDICES,
+    OBS_PREVIOUS_ACTION_INDICES,
     OBS_PROJECTED_GRAVITY_INDICES,
     OBS_VELOCITY_COMMANDS_INDICES,
     RIGHT_LEG_JOINT_INDICES,
@@ -101,9 +104,10 @@ def _mirror_policy_observation(obs: torch.Tensor) -> torch.Tensor:
         - Lateral (y) components are negated
         - Roll and yaw rotations are negated
         - Left/right leg joint data is swapped
+        - Depth image is flipped horizontally
 
     Args:
-        obs: Policy observation tensor of shape (batch_size, 48).
+        obs: Policy observation tensor.
 
     Returns:
         Mirrored observation tensor with the same shape.
@@ -131,7 +135,10 @@ def _mirror_policy_observation(obs: torch.Tensor) -> torch.Tensor:
     # Joint data: swap left/right and negate asymmetric joints
     obs[:, OBS_JOINT_POSITIONS_INDICES] = _mirror_joint_data(obs[:, OBS_JOINT_POSITIONS_INDICES])
     obs[:, OBS_JOINT_VELOCITIES_INDICES] = _mirror_joint_data(obs[:, OBS_JOINT_VELOCITIES_INDICES])
-    obs[:, OBS_PREVIOUS_ACTIONS_INDICES] = _mirror_joint_data(obs[:, OBS_PREVIOUS_ACTIONS_INDICES])
+    obs[:, OBS_PREVIOUS_ACTION_INDICES] = _mirror_joint_data(obs[:, OBS_PREVIOUS_ACTION_INDICES])
+
+    if obs.shape[1] > OBS_PREVIOUS_ACTION_INDICES.stop:
+        obs[:, OBS_HEIGHT_SCAN_INDICES] = _mirror_height_scan(obs[:, OBS_HEIGHT_SCAN_INDICES])
 
     return obs
 
@@ -171,3 +178,22 @@ def _mirror_joint_data(joint_data: torch.Tensor) -> torch.Tensor:
     mirrored[..., SYMMETRY_NEGATE_JOINT_INDICES] *= -1.0
 
     return mirrored
+
+
+def _mirror_height_scan(height_scan: torch.Tensor) -> torch.Tensor:
+    """Apply left-right mirror transformation to height scan.
+
+    Flips the height scan horizontally to match the sagittal plane symmetry transformation.
+
+    Args:
+        height_scan: Height scan tensor.
+
+    Returns:
+        Mirrored height scan tensor.
+    """
+    return (
+        height_scan.clone()
+        .view(-1, HEIGHT_SCAN_NUM_ROWS, HEIGHT_SCAN_NUM_COLS)
+        .flip(dims=[2])
+        .view(-1, HEIGHT_SCAN_NUM_ROWS * HEIGHT_SCAN_NUM_COLS)
+    )

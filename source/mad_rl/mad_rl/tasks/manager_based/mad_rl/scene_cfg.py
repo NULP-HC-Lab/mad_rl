@@ -5,10 +5,12 @@ import isaaclab.terrains as terrain_gen
 from isaaclab.actuators import ImplicitActuatorCfg
 from isaaclab.assets import ArticulationCfg, AssetBaseCfg
 from isaaclab.scene import InteractiveSceneCfg
-from isaaclab.sensors import ContactSensorCfg
+from isaaclab.sensors import ContactSensorCfg, RayCasterCfg, patterns
 from isaaclab.terrains import TerrainImporterCfg
 from isaaclab.utils import configclass
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR, ISAACLAB_NUCLEUS_DIR
+
+from .utils.constants import HEIGHT_SCAN_RESOLUTION, HEIGHT_SCAN_SIZE
 
 
 @configclass
@@ -43,12 +45,16 @@ class SceneCfg(InteractiveSceneCfg):
                 ".*_hip_pitch_joint": -0.20,
                 ".*_knee_joint": 0.42,
                 ".*_ankle_pitch_joint": -0.23,
+                ".*_elbow_joint": 1.134,
+                ".*_shoulder_pitch_joint": 0.261,
+                "left_shoulder_roll_joint": 0.261,
+                "right_shoulder_roll_joint": -0.261,
             },
             joint_vel={".*": 0.0},
         ),
         soft_joint_pos_limit_factor=0.9,
         actuators={
-            "lower_body": ImplicitActuatorCfg(
+            "legs": ImplicitActuatorCfg(
                 joint_names_expr=[
                     ".*_hip_yaw_joint",
                     ".*_hip_roll_joint",
@@ -88,6 +94,33 @@ class SceneCfg(InteractiveSceneCfg):
                     ".*_ankle_roll_joint": 0.01,
                 },
             ),
+            "arms": ImplicitActuatorCfg(
+                joint_names_expr=[
+                    ".*_elbow_joint",
+                    ".*_shoulder_pitch_joint",
+                    ".*_shoulder_roll_joint",
+                ],
+                effort_limit_sim={
+                    ".*_elbow_joint": 300,
+                    ".*_shoulder_pitch_joint": 300,
+                    ".*_shoulder_roll_joint": 300,
+                },
+                stiffness={
+                    ".*_elbow_joint": 40.0,
+                    ".*_shoulder_pitch_joint": 40.0,
+                    ".*_shoulder_roll_joint": 40.0,
+                },
+                damping={
+                    ".*_elbow_joint": 10.0,
+                    ".*_shoulder_pitch_joint": 10.0,
+                    ".*_shoulder_roll_joint": 10.0,
+                },
+                armature={
+                    ".*_elbow_joint": 0.01,
+                    ".*_shoulder_pitch_joint": 0.01,
+                    ".*_shoulder_roll_joint": 0.01,
+                },
+            ),
         },
         actuator_value_resolution_debug_print=True,
     )
@@ -108,6 +141,15 @@ class SceneCfg(InteractiveSceneCfg):
         prim_path="{ENV_REGEX_NS}/Robot/G1_base/base/right_ankle_roll",
         history_length=3,
         track_air_time=True,
+    )
+
+    height_scanner = RayCasterCfg(
+        prim_path="{ENV_REGEX_NS}/Robot/G1_base/base/pelvis",
+        offset=RayCasterCfg.OffsetCfg(pos=(0.3, 0.0, 0.0)),
+        ray_alignment="yaw",
+        pattern_cfg=patterns.GridPatternCfg(resolution=HEIGHT_SCAN_RESOLUTION, size=HEIGHT_SCAN_SIZE, ordering="yx"),
+        debug_vis=False,
+        mesh_prim_paths=["/World/ground"],
     )
 
     sky_light = AssetBaseCfg(
@@ -131,58 +173,64 @@ class RoughSceneCfg(SceneCfg):
             size=(8.0, 8.0),
             border_width=20.0,
             num_rows=10,
-            num_cols=6,
+            num_cols=9,
             horizontal_scale=0.1,
             vertical_scale=0.005,
             slope_threshold=0.75,
             use_cache=False,
             sub_terrains={
                 "pyramid_stairs": terrain_gen.MeshPyramidStairsTerrainCfg(
-                    proportion=0.1,
-                    step_height_range=(0.05, 0.3),
+                    step_height_range=(0.05, 0.17),
                     step_width=0.27,
-                    platform_width=3.0,
+                    platform_width=1.5,
+                    border_width=1.0,
+                    holes=False,
+                ),
+                "pyramid_stairs_narrow": terrain_gen.MeshPyramidStairsTerrainCfg(
+                    step_height_range=(0.05, 0.17),
+                    step_width=0.24,
+                    platform_width=1.5,
+                    border_width=1.0,
+                    holes=False,
+                ),
+                "pyramid_stairs_wide": terrain_gen.MeshPyramidStairsTerrainCfg(
+                    step_height_range=(0.05, 0.17),
+                    step_width=0.3,
+                    platform_width=1.5,
                     border_width=1.0,
                     holes=False,
                 ),
                 "pyramid_stairs_inv": terrain_gen.MeshInvertedPyramidStairsTerrainCfg(
-                    proportion=0.1,
-                    step_height_range=(0.05, 0.3),
+                    step_height_range=(0.05, 0.17),
                     step_width=0.27,
-                    platform_width=3.0,
+                    platform_width=1.5,
                     border_width=1.0,
                     holes=False,
                 ),
-                "rough_ground": terrain_gen.MeshRepeatedCylindersTerrainCfg(
-                    proportion=0.2,
-                    platform_width=2.0,
-                    object_params_start=terrain_gen.MeshRepeatedCylindersTerrainCfg.ObjectCfg(
-                        num_objects=1500,
-                        height=0.05,
-                        radius=0.25,
-                        max_yx_angle=0,
-                        degrees=True,
-                    ),
-                    object_params_end=terrain_gen.MeshRepeatedCylindersTerrainCfg.ObjectCfg(
-                        num_objects=3500,
-                        height=0.3,
-                        radius=0.15,
-                        max_yx_angle=10,
-                        degrees=True,
-                    ),
-                    abs_height_noise=(0.0, 0.35),
+                "pyramid_stairs_inv_narrow": terrain_gen.MeshInvertedPyramidStairsTerrainCfg(
+                    step_height_range=(0.05, 0.17),
+                    step_width=0.24,
+                    platform_width=1.5,
+                    border_width=1.0,
+                    holes=False,
+                ),
+                "pyramid_stairs_inv_wide": terrain_gen.MeshInvertedPyramidStairsTerrainCfg(
+                    step_height_range=(0.05, 0.17),
+                    step_width=0.3,
+                    platform_width=1.5,
+                    border_width=1.0,
+                    holes=False,
                 ),
                 "hf_pyramid_slope": terrain_gen.HfPyramidSlopedTerrainCfg(
-                    proportion=0.1,
                     slope_range=(0.0, 0.4),
-                    platform_width=2.0,
+                    platform_width=1.5,
                     border_width=0.25,
                 ),
                 "hf_pyramid_slope_inv": terrain_gen.HfInvertedPyramidSlopedTerrainCfg(
-                    proportion=0.1,
                     slope_range=(0.0, 0.4),
-                    platform_width=2.0,
+                    platform_width=1.5,
                     border_width=0.25,
                 ),
+                "plane": terrain_gen.MeshPlaneTerrainCfg(),
             },
         )

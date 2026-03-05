@@ -1,0 +1,41 @@
+[workspace]
+authors = ["Andrii Osidach <andriiosidach@gmail.com>"]
+channels = ["conda-forge"]
+name = "mad_rl"
+platforms = ["linux-64"]
+version = "0.1.0"
+
+[environments]
+tools = ["tools"]
+rl = ["rl"]
+
+[feature.tools.tasks]
+image = { cmd = "docker compose -p mad build" }
+up = { cmd = "docker compose -p mad --env-file docker/.env.base up -d" }
+bash = { cmd = "docker compose -p mad exec rl bash" }
+down = { cmd = "docker compose -p mad down" }
+
+[feature.rl.system-requirements]
+libc = { family = "glibc", version = "2.35" }
+
+[feature.rl.dependencies]
+python = "==3.11"
+
+[feature.rl.pypi-options]
+extra-index-urls = ["https://pypi.nvidia.com"]
+index-strategy = "unsafe-best-match"
+
+[feature.rl.pypi-dependencies]
+isaaclab = { version = "==2.3.2.post1", extras = ["isaacsim", "rsl-rl"] }
+mad_rl = { path = "source/mad_rl", editable = true }
+setuptools = "<81.0"
+
+[feature.rl.activation.env]
+LD_LIBRARY_PATH = "$LD_LIBRARY_PATH:$CONDA_PREFIX/lib:/usr/lib/x86_64-linux-gnu"
+
+[feature.rl.tasks]
+list_envs = { cmd = "python scripts/list_envs.py" }
+zero_agent = { cmd = "python scripts/zero_agent.py" }
+train = { cmd = "python scripts/rsl_rl/train.py" }
+play = { cmd = "python scripts/rsl_rl/play.py" }
+tensorboard = { cmd = "tensorboard --logdir logs" }

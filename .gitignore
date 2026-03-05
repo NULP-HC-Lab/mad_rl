@@ -65,4 +65,7 @@ _build
 tests/
 
 # Docker history
-.isaac-lab-docker-history
+.bash_history
+# pixi environments
+.pixi/*
+!.pixi/config.toml

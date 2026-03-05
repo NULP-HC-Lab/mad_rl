@@ -11,27 +11,32 @@ level as this repository.
 
 1. Build the Docker image:
 ```bash
-python docker/container.py start
+pixi r image
 ```
 
-2. Enter the container:
+2. Start the container:
 ```bash
-python docker/container.py enter
+pixi r up
+```
+
+3. Enter the container:
+```bash
+pixi r bash
 ```
 
 3. List environments (tasks):
 ```bash
-python scripts/list_envs.py
+pixi r list_envs
 ```
 
 4. Run the training:
 ```bash
-python scripts/rsl_rl/train.py --task <TASK_NAME>
+pixi r train --task <TASK_NAME>
 ```
 
 5. (Optional) Watch the training curves in real-time inside the container:
 ```bash
-tensorboard --logdir logs
+pixi r tensorboard
 ```
 
 ## Code formatting

@@ -10,9 +10,9 @@ tools = ["tools"]
 rl = ["rl"]
 
 [feature.tools.tasks]
-env = "cp -n docker/.env.base docker/.env"
+env = "test -f .env || cp .env.base .env"
 image = "UID=$(id -u) GID=$(id -g) docker compose -p mad build"
-up = { cmd = "docker compose -p mad --env-file docker/.env up -d", depends-on = "env"}
+up = { cmd = "docker compose -p mad up -d", depends-on = "env"}
 bash = "docker compose -p mad exec rl bash"
 down = "docker compose -p mad down"
 

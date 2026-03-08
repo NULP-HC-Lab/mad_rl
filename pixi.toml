@@ -10,10 +10,10 @@ tools = ["tools"]
 rl = ["rl"]
 
 [feature.tools.tasks]
-image = { cmd = "docker compose -p mad build" }
-up = { cmd = "docker compose -p mad --env-file docker/.env.base up -d" }
-bash = { cmd = "docker compose -p mad exec rl bash" }
-down = { cmd = "docker compose -p mad down" }
+image = "UID=$(id -u) GID=$(id -g) docker compose -p mad build"
+up = "docker compose -p mad --env-file docker/.env.base up -d"
+bash = "docker compose -p mad exec rl bash"
+down = "docker compose -p mad down"
 
 [feature.rl.system-requirements]
 libc = { family = "glibc", version = "2.35" }
@@ -34,8 +34,8 @@ setuptools = "<81.0"
 LD_LIBRARY_PATH = "$LD_LIBRARY_PATH:$CONDA_PREFIX/lib:/usr/lib/x86_64-linux-gnu"
 
 [feature.rl.tasks]
-list_envs = { cmd = "python scripts/list_envs.py" }
-zero_agent = { cmd = "python scripts/zero_agent.py" }
-train = { cmd = "python scripts/rsl_rl/train.py" }
-play = { cmd = "python scripts/rsl_rl/play.py" }
-tensorboard = { cmd = "tensorboard --logdir logs" }
+list_envs = "python scripts/list_envs.py"
+zero_agent = "python scripts/zero_agent.py"
+train = "python scripts/rsl_rl/train.py"
+play = "python scripts/rsl_rl/play.py"
+tensorboard = "tensorboard --logdir logs"

@@ -3,6 +3,10 @@ FROM ghcr.io/prefix-dev/pixi:noble-cuda-13.0.0
 ENV DEBIAN_FRONTEND="noninteractive"
 ENV PIXI_CACHE_DIR=/workspace/.pixi
 
+ARG USERNAME=user
+ARG UID=1000
+ARG GID=1000
+
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && apt-get install -y --no-install-recommends \
@@ -21,9 +25,16 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     git \
     && rm -rf /var/lib/apt/lists/*
 
+RUN groupadd --gid ${GID} ${USERNAME} \
+    && useradd --uid ${UID} --gid ${GID} -m ${USERNAME}
+
+USER ${USERNAME}
+
 WORKDIR /workspace
-COPY source source
-RUN --mount=type=cache,target=${PIXI_CACHE_DIR} \
+
+COPY --chown=${USERNAME}:${USERNAME} source source
+
+RUN --mount=type=cache,target=${PIXI_CACHE_DIR},uid=${UID},gid=${GID} \
     --mount=type=bind,source=pixi.lock,target=pixi.lock \
     --mount=type=bind,source=pixi.toml,target=pixi.toml \
     pixi install --locked -e rl

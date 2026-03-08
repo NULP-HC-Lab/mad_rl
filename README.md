@@ -4,8 +4,13 @@ This repository contains the code for the reinforcement learning pipelines in Is
 
 ## Prerequisites
 
-Make sure you have the `mad_assets` repository cloned and available at the same directory
-level as this repository.
+- Make sure you have the `mad_assets` repository cloned and available at the same
+directory level as this repository.
+
+- Install Pixi:
+```bash
+curl -fsSL https://pixi.sh/install.sh | sh
+```
 
 ## Quick start
 

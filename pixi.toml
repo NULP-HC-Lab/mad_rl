@@ -6,10 +6,10 @@ platforms = ["linux-64"]
 version = "0.1.0"
 
 [environments]
-tools = ["tools"]
+docker = ["docker"]
 rl = ["rl"]
 
-[feature.tools.tasks]
+[feature.docker.tasks]
 env = "test -f .env || cp .env.base .env"
 image = "UID=$(id -u) GID=$(id -g) docker compose -p mad build"
 up = { cmd = "docker compose -p mad up -d", depends-on = "env"}

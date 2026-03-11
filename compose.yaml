@@ -8,14 +8,11 @@ services:
 
     command: sleep infinity
 
+    env_file:
+      - .env
+
     environment:
-      DISPLAY: ${DISPLAY}
-      QT_X11_NO_MITSHM: ${QT_X11_NO_MITSHM}
-      NVIDIA_VISIBLE_DEVICES: ${NVIDIA_VISIBLE_DEVICES}
-      NVIDIA_DRIVER_CAPABILITIES: ${NVIDIA_DRIVER_CAPABILITIES}
-      HISTFILE: ${HISTFILE}
-      PROMPT_COMMAND: ${PROMPT_COMMAND}
-      MAD_ASSETS_PATH: ${MAD_ASSETS_PATH}
+      - DISPLAY=${DISPLAY}
 
     volumes:
       - .:/workspace

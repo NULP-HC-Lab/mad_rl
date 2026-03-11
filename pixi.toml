@@ -5,36 +5,25 @@ name = "mad_rl"
 platforms = ["linux-64"]
 version = "0.1.0"
 
-[environments]
-docker = ["docker"]
-rl = ["rl"]
-
-[feature.docker.tasks]
-env = "test -f .env || cp .env.base .env"
-image = "UID=$(id -u) GID=$(id -g) docker compose -p mad build"
-up = { cmd = "docker compose -p mad up -d", depends-on = "env"}
-bash = "docker compose -p mad exec rl bash"
-down = "docker compose -p mad down"
-
-[feature.rl.system-requirements]
+[system-requirements]
 libc = { family = "glibc", version = "2.35" }
 
-[feature.rl.dependencies]
+[dependencies]
 python = "==3.11"
 
-[feature.rl.pypi-options]
+[pypi-options]
 extra-index-urls = ["https://pypi.nvidia.com"]
 index-strategy = "unsafe-best-match"
 
-[feature.rl.pypi-dependencies]
+[pypi-dependencies]
 isaaclab = { version = "==2.3.2.post1", extras = ["isaacsim", "rsl-rl"] }
 mad_rl = { path = "source/mad_rl", editable = true }
 setuptools = "<81.0"
 
-[feature.rl.activation.env]
+[activation.env]
 LD_LIBRARY_PATH = "$LD_LIBRARY_PATH:$CONDA_PREFIX/lib:/usr/lib/x86_64-linux-gnu"
 
-[feature.rl.tasks]
+[tasks]
 list_envs = "python scripts/list_envs.py"
 zero_agent = "python scripts/zero_agent.py"
 train = "python scripts/rsl_rl/train.py"

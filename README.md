@@ -16,17 +16,17 @@ curl -fsSL https://pixi.sh/install.sh | sh
 
 1. Build the Docker image:
 ```bash
-pixi r image
+docker compose -p mad build
 ```
 
 2. Start the container:
 ```bash
-pixi r up
+docker compose -p mad up -d
 ```
 
 3. Enter the container:
 ```bash
-pixi r bash
+docker compose -p mad exec rl bash
 ```
 
 3. List environments (tasks):

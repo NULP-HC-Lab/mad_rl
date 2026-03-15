@@ -21,7 +21,7 @@ docker compose -p mad build
 
 2. Start the container:
 ```bash
-docker compose -p mad up -d
+docker compose -p mad up --watch
 ```
 
 3. Enter the container:

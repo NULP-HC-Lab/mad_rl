@@ -32,9 +32,12 @@ USER ${USERNAME}
 
 WORKDIR /workspace
 
-COPY --chown=${USERNAME}:${USERNAME} source source
-
 RUN --mount=type=cache,target=${PIXI_CACHE_DIR},uid=${UID},gid=${GID} \
     --mount=type=bind,source=pixi.lock,target=pixi.lock \
     --mount=type=bind,source=pixi.toml,target=pixi.toml \
-    pixi install --locked -e rl
+    pixi install --frozen --skip mad-rl
+
+COPY --chown=${USERNAME}:${USERNAME} . .
+
+RUN --mount=type=cache,target=${PIXI_CACHE_DIR},uid=${UID},gid=${GID} \
+    pixi install --locked

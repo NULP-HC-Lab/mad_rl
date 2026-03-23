@@ -1,7 +1,6 @@
 FROM ghcr.io/prefix-dev/pixi:noble-cuda-13.0.0
 
 ENV DEBIAN_FRONTEND="noninteractive"
-ENV PIXI_CACHE_DIR=/workspace/.pixi
 
 ARG USERNAME=user
 ARG UID=1000
@@ -32,6 +31,7 @@ USER ${USERNAME}
 
 WORKDIR /workspace
 
+ENV PIXI_CACHE_DIR=/home/user/.cache/rattler
 RUN --mount=type=cache,target=${PIXI_CACHE_DIR},uid=${UID},gid=${GID} \
     --mount=type=bind,source=pixi.lock,target=pixi.lock \
     --mount=type=bind,source=pixi.toml,target=pixi.toml \

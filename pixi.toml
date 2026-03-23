@@ -20,8 +20,9 @@ isaaclab = { version = "==2.3.2.post1", extras = ["isaacsim", "rsl-rl"] }
 mad_rl = { path = "source/mad_rl", editable = true }
 setuptools = "<81.0"
 
-[activation.env]
-LD_LIBRARY_PATH = "$LD_LIBRARY_PATH:$CONDA_PREFIX/lib:/usr/lib/x86_64-linux-gnu"
+[activation]
+env = { LD_LIBRARY_PATH = "$LD_LIBRARY_PATH:$CONDA_PREFIX/lib:/usr/lib/x86_64-linux-gnu" }
+scripts = ["scripts/env_setup.sh"]
 
 [tasks]
 list_envs = "python scripts/list_envs.py"

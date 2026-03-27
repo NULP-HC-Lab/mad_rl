@@ -1,0 +1,52 @@
+services:
+  rl:
+    build:
+      context: .
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
+
+    command: sleep infinity
+
+    env_file:
+      - .env
+
+    environment:
+      - DISPLAY=${DISPLAY}
+
+    volumes:
+      - ../mad_assets/models:${MAD_ASSETS_PATH:-}/models
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+
+    stdin_open: true
+    tty: true
+    ipc: host
+    network_mode: host
+
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [ gpu ]
+
+    develop:
+      watch:
+        - action: sync
+          path: ./source
+          target: /workspace/source
+        - action: sync
+          path: ./pixi.toml
+          target: /workspace/pixi.toml
+        - action: sync
+          path: ./logs
+          target: /workspace/logs
+        - action: sync
+          path: ./scripts
+          target: /workspace/scripts
+        - action: sync
+          path: ./.bash_history
+          target: /workspace/.bash_history
+        - action: rebuild
+          path: ./pixi.lock

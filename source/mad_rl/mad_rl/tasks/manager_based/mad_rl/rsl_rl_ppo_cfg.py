@@ -12,8 +12,8 @@ from .utils.symmetry import compute_symmetry_augmented_data
 @configclass
 class RslRlPpoCfg(RslRlOnPolicyRunnerCfg):
     num_steps_per_env = 24
-    max_iterations = 3000
-    save_interval = 150
+    max_iterations = 40_000
+    save_interval = 500
     experiment_name = "mad_rl"
     obs_groups = {
         "policy": ["policy"],

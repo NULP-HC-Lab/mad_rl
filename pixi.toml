@@ -2,31 +2,70 @@
 authors = ["Andrii Osidach <andriiosidach@gmail.com>"]
 channels = ["conda-forge"]
 name = "mad_rl"
-platforms = ["linux-64"]
+platforms = [{ platform = "linux-64", glibc = "2.35" }]
 version = "0.1.0"
 
-[system-requirements]
-libc = { family = "glibc", version = "2.35" }
-
 [dependencies]
-python = "==3.11"
+python = "==3.12"
+git = "*"
 
 [pypi-options]
 extra-index-urls = ["https://pypi.nvidia.com"]
 index-strategy = "unsafe-best-match"
+prerelease-mode = "allow"
+
+# Copy-pasted from IsaacLab's [tool.uv], because pixi only reads half of a path dep's
+# pyproject. [project.dependencies] and the path entries in [tool.uv.sources] do come
+# through, that's how the workspace members end up as editable source/ installs but
+# nothing under [tool.uv] does, so these overrides and the resolver settings above
+# have to be restated.
+[pypi-options.dependency-overrides]
+numpy = ">=2"
+mujoco = "~=3.12.0"
+mujoco-warp = "~=3.12.0"
+newton = { version = "==1.6.0rc1", extras = ["sim"] }
+newton-usd-schemas = ">=0.4.1"
+torch = "==2.11.0"
+torchvision = "==0.26.0"
+torchaudio = "==2.11.0"
+typing-extensions = ">=4.15.0"
+websockets = ">=14.0,<17.0.0"
+coverage = ">=7.6.1"
+packaging = ">=20,<27"
+# Compromising addition. IsaacLab pins usd-exchange==2.3.0 with the comment "vendors
+# USD 25.5, matching the Isaac Sim 6.0 wheel stack", but isaacsim 6.0.1.0's Kit is
+# built against USD 25.11 (libusd_sdf.so exports pxrInternal_v0_25_11). The 25.5
+# `pxr` in site-packages then shadows it and Kit dies at boot with
+#   TypeError: No to_python converter found for ... pxrInternal_v0_25_11 ... SdfPath
+#   AttributeError: module 'omni.usd' has no attribute 'get_context'
+# usd-exchange 3.x defers to an installed usd-core instead of vendoring its own,
+# so pinning usd-core below is what actually lines site-packages up with Kit.
+# Drop both when upstream's pin catches up.
+usd-exchange = "==3.0.0rc2"
 
 [pypi-dependencies]
-isaaclab = { version = "==2.3.2.post1", extras = ["isaacsim", "rsl-rl"] }
+isaaclab-dev = { path = "external/IsaacLab", editable = true, extras = ["isaacsim"] }
 mad_rl = { path = "source/mad_rl", editable = true }
-setuptools = "<81.0"
+# required by `pxr` 
+usd-core = "==25.11"
+wandb = "*"
+pyarrow = "*"
 
 [activation]
-env = { LD_LIBRARY_PATH = "$LD_LIBRARY_PATH:$CONDA_PREFIX/lib:/usr/lib/x86_64-linux-gnu" }
+env = { 
+    LD_LIBRARY_PATH = "$LD_LIBRARY_PATH:$CONDA_PREFIX/lib:/usr/lib/x86_64-linux-gnu", 
+    PYTHONNOUSERSITE = "1", 
+    OMNI_KIT_ACCEPT_EULA = "YES", 
+    MAD_ASSETS_PATH = "$PIXI_PROJECT_ROOT/../mad_assets" 
+}
 scripts = ["scripts/env_setup.sh"]
 
 [tasks]
+setup = { cmd = "git submodule update --init --recursive && pixi install", description = "Fresh clone: check out external/IsaacLab and install the environment" }
 list_envs = "python scripts/list_envs.py"
-zero_agent = "python scripts/zero_agent.py"
-train = "python scripts/rsl_rl/train.py"
-play = "python scripts/rsl_rl/play.py"
+zero_agent = "isaaclab zero_agent"
+random_agent = "isaaclab random_agent"
+# In 3.0 `--export_io_descriptors` is False by default.
+train = "isaaclab train --export_io_descriptors"
+play = "isaaclab play"
 tensorboard = "tensorboard --logdir logs"

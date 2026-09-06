@@ -1,9 +1,9 @@
 from isaaclab.managers import ObservationGroupCfg as ObsGroup
 from isaaclab.managers import ObservationTermCfg as ObsTerm
 from isaaclab.managers import SceneEntityCfg
-from isaaclab.utils import configclass
-from isaaclab.utils.noise import AdditiveUniformNoiseCfg as Unoise
-from isaaclab_tasks.manager_based.locomotion.velocity import mdp
+from isaaclab.utils.configclass import configclass
+from isaaclab.utils.noise import UniformNoiseCfg as Unoise
+from isaaclab_tasks.core.velocity import mdp
 
 from .utils.constants import OBSERVABLE_JOINT_NAMES
 from .utils.observations import height_scan

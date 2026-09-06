@@ -7,6 +7,7 @@ gym.register(
     kwargs={
         "env_cfg_entry_point": f"{__name__}.env_cfg:EnvCfg",
         "rsl_rl_cfg_entry_point": f"{__name__}.rsl_rl_ppo_cfg:RslRlPpoCfg",
+        "default_agent": "rsl_rl",
     },
 )
 
@@ -17,6 +18,7 @@ gym.register(
     kwargs={
         "env_cfg_entry_point": f"{__name__}.env_cfg:EnvCfg_PLAY",
         "rsl_rl_cfg_entry_point": f"{__name__}.rsl_rl_ppo_cfg:RslRlPpoCfg",
+        "default_agent": "rsl_rl",
     },
 )
 
@@ -27,6 +29,7 @@ gym.register(
     kwargs={
         "env_cfg_entry_point": f"{__name__}.env_cfg:RoughEnvCfg",
         "rsl_rl_cfg_entry_point": f"{__name__}.rsl_rl_ppo_cfg:RslRlPpoCfg",
+        "default_agent": "rsl_rl",
     },
 )
 
@@ -37,5 +40,6 @@ gym.register(
     kwargs={
         "env_cfg_entry_point": f"{__name__}.env_cfg:RoughEnvCfg_PLAY",
         "rsl_rl_cfg_entry_point": f"{__name__}.rsl_rl_ppo_cfg:RslRlPpoCfg",
+        "default_agent": "rsl_rl",
     },
 )

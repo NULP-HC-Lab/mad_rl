@@ -13,17 +13,8 @@ All the environments are registered in the `mad_rl` extension. They start
 with `Isaac` in their name.
 """
 
-"""Launch Isaac Sim Simulator first."""
-
-from isaaclab.app import AppLauncher
-
-# launch omniverse app
-app_launcher = AppLauncher(headless=True)
-simulation_app = app_launcher.app
-
-
-"""Rest everything follows."""
-
+# Isaac Lab 3.0 resolves env configs without Kit, so listing tasks no longer needs
+# the simulator launched.
 import gymnasium as gym
 import mad_rl.tasks  # noqa: F401
 from prettytable import PrettyTable
@@ -53,11 +44,4 @@ def main():
 
 
 if __name__ == "__main__":
-    try:
-        # run the main function
-        main()
-    except Exception as e:
-        raise e
-    finally:
-        # close the app
-        simulation_app.close()
+    main()

@@ -1,7 +1,7 @@
-from isaaclab.utils import configclass
+from isaaclab.utils.configclass import configclass
 from isaaclab_rl.rsl_rl import (
+    RslRlMLPModelCfg,
     RslRlOnPolicyRunnerCfg,
-    RslRlPpoActorCriticCfg,
     RslRlPpoAlgorithmCfg,
     RslRlSymmetryCfg,
 )
@@ -15,18 +15,23 @@ class RslRlPpoCfg(RslRlOnPolicyRunnerCfg):
     max_iterations = 40_000
     save_interval = 500
     experiment_name = "mad_rl"
+    empirical_normalization = False
+    # "rsl-rl>=4" renames "policy"/"critic" to "actor"/"critic". 
     obs_groups = {
-        "policy": ["policy"],
+        "actor": ["policy"],
         "critic": ["critic"],
     }
-    policy = RslRlPpoActorCriticCfg(
-        init_noise_std=1.0,
-        noise_std_type="log",
-        actor_obs_normalization=True,
-        critic_obs_normalization=True,
-        actor_hidden_dims=[256, 128, 128],
-        critic_hidden_dims=[256, 128, 128],
+    # "rsl-rl>=4" splits the old ActorCritic config with general model config. 
+    actor = RslRlMLPModelCfg(
+        hidden_dims=[256, 128, 128],
         activation="elu",
+        obs_normalization=True,
+        distribution_cfg=RslRlMLPModelCfg.GaussianDistributionCfg(init_std=1.0, std_type="log"),
+    )
+    critic = RslRlMLPModelCfg(
+        hidden_dims=[256, 128, 128],
+        activation="elu",
+        obs_normalization=True,
     )
     algorithm = RslRlPpoAlgorithmCfg(
         value_loss_coef=1.0,

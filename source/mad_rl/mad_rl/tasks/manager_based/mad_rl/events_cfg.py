@@ -1,7 +1,7 @@
 from isaaclab.managers import EventTermCfg as EventTerm
 from isaaclab.managers import SceneEntityCfg
-from isaaclab.utils import configclass
-from isaaclab_tasks.manager_based.locomotion.velocity import mdp
+from isaaclab.utils.configclass import configclass
+from isaaclab_tasks.core.velocity import mdp
 
 from .utils.events import apply_default_joint_position
 

@@ -7,7 +7,7 @@ Reinforcement learning pipelines for the Unitree G1 in Isaac Lab 3.0 for MAD clu
 - Make sure you have the `mad_assets` repository cloned and available at the same
 directory level as this repository (`../mad_assets`). Override with 
 `MAD_ASSETS_PATH` in a `.env` file if it lives elsewhere.
-- [Pixi](https://pixi.sh) (if you already have it, don't forget to keep it up with updates):
+- [Pixi](https://pixi.sh) (if you already have it, don't forget to keep it up updated):
   ```bash
   curl -fsSL https://pixi.sh/install.sh | sh
   ```
@@ -36,15 +36,10 @@ Add `--viz kit` to any of those to open an Omniverse viewport; without it the si
 headless by default. Other options are `newton`, `rerun`, `viser`. They can even be 
 specified via comma `--viz kit,newton`. 
 
-Every `pixi run` task above is Isaac Lab's own `isaaclab` CLI, so every upstream
-flag (`--num_envs`, `--max_iterations`, `physics=` presets, hydra overrides)
-works. Two pieces of wiring make that possible without wrapper scripts: the
-`isaaclab.tasks` entry point in `source/mad_rl/setup.py` registers the `Mad-Rl-*`
-gym ids, and `default_agent` in each `gym.register` picks the RL backend, so
-`--rl_library` only has to be passed when overriding it.
+Every `pixi run` task above is Isaac Lab's own `isaaclab` CLI, so every common
+flag (`--num_envs`, `--max_iterations`, `physics=` presets, hydra overrides) works.
 
 ### Updating Isaac Lab
-
 The submodule tracks upstream's `develop` branch:
 
 ```bash
@@ -59,10 +54,8 @@ bump.
 
 ## Docker
 
-`Dockerfile` / `compose.yaml` predate the submodule and do **not** build: the
-cached `pixi install --frozen` layer bind-mounts only `pixi.lock` and
-`pixi.toml`, which cannot resolve `path = "external/IsaacLab"`. Local pixi is the
-supported path for now.
+`Dockerfile` / `compose.yaml` predate the submodule and isn't updated to Isaac
+Lab 3.0 install with submodule.
 
 ## Code formatting
 

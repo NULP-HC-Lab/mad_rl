@@ -72,6 +72,7 @@ tests/
 
 .env
 
-# mjswan build output and the downloaded AME-2 checkpoint
+# mjswan build output, smoke-test screenshots and the downloaded AME-2 checkpoint
 scripts/mjswan/dist/
 scripts/mjswan/.cache/
+scripts/mjswan/screenshots/

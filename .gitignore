@@ -72,5 +72,6 @@ tests/
 
 .env
 
-# mjswan build output
+# mjswan build output and the downloaded AME-2 checkpoint
 scripts/mjswan/dist/
+scripts/mjswan/.cache/

@@ -2,9 +2,12 @@
 # requires-python = ">=3.12,<3.13"
 # dependencies = ["mjswan[examples]==0.11.6", "usd-core==26.8"]
 # ///
-"""Headless check of the policy in mjlab on every lab station: progress, falls, one video each.
+"""Headless check of the policy in mjlab on every lab station: falls, goals reached, one video each.
 
-    uv run scripts/mjswan/rollout.py [--seconds 30] [--out scripts/mjswan/videos]
+    uv run scripts/mjswan/rollout.py [--trials 32] [--seconds 20] [--out scripts/mjswan/videos]
+
+Every trial but the filmed one (env 0) starts with a jittered pose, velocity and joints.
+Exits 1 if a station reaches its goal in under 90 % of trials.
 """
 
 import argparse
@@ -17,7 +20,8 @@ from mjlab.envs import ManagerBasedRlEnv
 import task
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--seconds", type=float, default=30.0)
+parser.add_argument("--seconds", type=float, default=20.0)
+parser.add_argument("--trials", type=int, default=32)
 parser.add_argument("--out", type=Path, default=Path(__file__).parent / "videos")
 parser.add_argument("--station", action="append", help="default: all")
 args = parser.parse_args()
@@ -25,23 +29,42 @@ args.out.mkdir(parents=True, exist_ok=True)
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 policy = task.actor().to(device)
+failed = False
 
 for name in args.station or task.STATIONS:
     station = task.STATIONS[name]
-    env = ManagerBasedRlEnv(task.env_cfg(**station), device=device, render_mode="rgb_array")
+    cfg = task.env_cfg(**station, episode_s=args.seconds + 1.0, num_envs=args.trials, jitter=True)
+    env = ManagerBasedRlEnv(cfg, device=device, render_mode="rgb_array")
     obs, _ = env.reset()
     robot = env.scene["robot"]
-    start = robot.data.root_link_pos_w[0].clone()
-    frames, falls, top_z = [], 0, 0.0
+    # env 0 starts exactly at the station's spawn, for the video.
+    pose = robot.data.default_root_state[:1].clone()
+    pose[:, :3] += env.scene.env_origins[:1]
+    robot.write_root_state_to_sim(pose, env_ids=torch.tensor([0], device=device))
+    robot.write_joint_state_to_sim(
+        robot.data.default_joint_pos[:1], robot.data.default_joint_vel[:1], env_ids=torch.tensor([0], device=device)
+    )
+    obs = env.observation_manager.compute()
+    goal = torch.tensor(station["goal"], device=device)
+    fell = torch.zeros(args.trials, dtype=torch.bool, device=device)
+    rise = torch.zeros(args.trials, device=device)
+    frames = []
     with torch.no_grad():
         for step in range(int(args.seconds / env.step_dt)):
-            obs, _, terminated, truncated, _ = env.step(policy(obs["actor"]))
-            pos = robot.data.root_link_pos_w[0]
-            top_z = max(top_z, float(pos[2]) - task.SPAWN_Z)
-            falls += int(terminated[0])
+            obs, _, terminated, _, _ = env.step(policy(obs["actor"], obs["map"]))
+            if step == 1:  # the actor reads the older of the two stacked actions
+                assert torch.equal(obs["actor"][:, 55:78], env.action_manager.prev_action)
+            fell |= terminated
+            rise = torch.maximum(rise, robot.data.root_link_pos_w[:, 2] - task.SPAWN_Z)
             if step % 2 == 0:  # 25 fps
                 frames.append(env.render())
-    travelled = float(torch.linalg.norm((pos - start)[:2]))
-    print(f"{name:18s} travelled {travelled:5.2f} m  max pelvis rise {top_z:+.2f} m  falls {falls}")
+    dist = torch.linalg.norm(robot.data.root_link_pos_w[:, :2] - env.scene.env_origins[:, :2] - goal, dim=-1)
+    reached = (dist < 0.5) & ~fell
+    print(f"{name:18s} falls {int(fell.sum())}/{args.trials}  reached goal {int(reached.sum())}/{args.trials}  "
+          f"pelvis rise min/max {float(rise.min()):+.2f}/{float(rise.max()):+.2f} m  "
+          f"film run: fell={bool(fell[0])} dist={float(dist[0]):.2f} m rise={float(rise[0]):+.2f} m")
+    failed |= int(reached.sum()) < 0.9 * args.trials
     mediapy.write_video(args.out / f"{name.lower().replace(' ', '_')}.mp4", frames, fps=25)
     env.close()
+
+raise SystemExit(1 if failed else 0)

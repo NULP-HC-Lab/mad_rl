@@ -48,19 +48,27 @@ Bump the `isaaclab` pin in `pixi.toml` and replace the
 
 ## Browser demo (mjswan)
 
-`scripts/mjswan/` runs the `Mad-Rl-Rough` policy in MuJoCo on the lab course from
-`mad_assets/scenes/default.usd` (12 cm and 25 cm stairs, ramp, brick road) and builds it into a
-static browser app with [mjswan](https://mjswan.readthedocs.io). Needs `uv`, nothing from pixi:
+`scripts/mjswan/` runs ETH's AME-2 G1 teacher
+([leggedrobotics/ame2_minimal](https://github.com/leggedrobotics/ame2_minimal),
+`modelzoo/g1_gaze_64000env_10h/model_2400.pt`, GPL-3.0) in MuJoCo on the lab course from
+`mad_assets/scenes/default.usd` (12 cm stairs, ramp, brick road) plus wide 20 cm stairs, and
+builds it into a static browser app with [mjswan](https://mjswan.readthedocs.io). Needs `uv`,
+nothing from pixi:
 
 ```bash
-uv run scripts/mjswan/rollout.py            # headless check + videos in scripts/mjswan/videos
+uv run scripts/mjswan/rollout.py            # 32 jittered trials per station + videos in scripts/mjswan/videos
 uv run scripts/mjswan/build.py              # build scripts/mjswan/dist and serve on localhost:8080
 uv run scripts/mjswan/build.py --publish    # upload to mjswan Cloud (GitHub sign-in)
 ```
 
-`MAD_RL_CHECKPOINT` picks the policy: an rsl-rl `model_*.pt` or an exported `policy.pt`
-(default: the blind policy in `2026-03-21_12-27-55__blind/`). `task.py` mirrors the Isaac Lab task cfgs by hand:
-change it when observations, actions or gains change there.
+The checkpoint is downloaded once (83 MB, pinned commit) into `scripts/mjswan/.cache/`;
+`MAD_RL_CHECKPOINT` points elsewhere. The policy is goal-reaching: each scene has a fixed goal
+past its obstacle. `task.py` mirrors the authors' Isaac Lab 2.3 cfgs by hand (23-DoF G1 with
+welded wrists, their gains, 26 x 15 xyz height map) and transcribes their `AME2GazeModel`;
+its output was checked against the original class.
+
+Not the lab's 25 cm stairs: they are 0.61 m wide and the policy walks around them (on wide
+stairs it climbs 25 cm in 14 of 16 trials).
 
 ## Docker
 

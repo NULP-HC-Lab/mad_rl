@@ -1,4 +1,0 @@
-[submodule "external/IsaacLab"]
-	path = external/IsaacLab
-	url = https://github.com/isaac-sim/IsaacLab.git
-	branch = develop

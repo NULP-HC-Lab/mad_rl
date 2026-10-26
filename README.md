@@ -15,11 +15,11 @@ directory level as this repository (`../mad_assets`). Override with
 
 ## Quick start
 
-Isaac Lab 3.0 is not published on PyPI, so it is vendored as a git submodule at
-`external/IsaacLab` and installed as an editable path dependency (~26GB):
+Isaac Lab is installed from the published `isaaclab==3.0.0` wheel with Isaac Sim 6.2
+(~26GB):
 
 ```bash
-pixi run setup
+pixi install
 ```
 
 Then:
@@ -40,22 +40,15 @@ Every `pixi run` task above is Isaac Lab's own `isaaclab` CLI, so every common
 flag (`--num_envs`, `--max_iterations`, `physics=` presets, hydra overrides) works.
 
 ### Updating Isaac Lab
-The submodule tracks upstream's `develop` branch:
-
-```bash
-git submodule update --remote external/IsaacLab
-pixi install          # re-solve against the new dependency contract
-```
-
-`pixi.toml` restates IsaacLab's `[tool.uv] override-dependencies` and resolver
-settings by hand, because pixi does not read a path dependency's `[tool.uv]`
-table. Re-check that block against `external/IsaacLab/pyproject.toml` after a
-bump.
+Bump the `isaaclab` pin in `pixi.toml` and replace the
+`[pypi-options.dependency-overrides]` block with that release's
+[`tools/wheel_builder/uv-overrides.txt`](https://github.com/isaac-sim/IsaacLab/blob/v3.0.0/tools/wheel_builder/uv-overrides.txt)
+(the `--overrides` file upstream's `isaaclab[isaacsim]` install uses; pixi has no
+`--overrides` flag), then run `pixi install`.
 
 ## Docker
 
-`Dockerfile` / `compose.yaml` predate the submodule and isn't updated to Isaac
-Lab 3.0 install with submodule.
+`Dockerfile` / `compose.yaml` predate Isaac Lab 3.0 and are not updated yet.
 
 ## Code formatting
 
@@ -67,4 +60,4 @@ pre-commit install
 ```
 
 ## References
-- [IsaacLab 3.0 migration guide](https://isaac-sim.github.io/IsaacLab/v3.0.0-beta2/source/migration/migrating_to_isaaclab_3-0.html)
+- [IsaacLab 3.0 migration guide](https://isaac-sim.github.io/IsaacLab/main/source/isaaclab/migrating.html)

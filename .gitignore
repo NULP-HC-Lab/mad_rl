@@ -71,3 +71,6 @@ tests/
 !.pixi/config.toml
 
 .env
+
+# mjswan build output
+scripts/mjswan/dist/

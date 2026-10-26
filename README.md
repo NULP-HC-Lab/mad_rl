@@ -46,6 +46,22 @@ Bump the `isaaclab` pin in `pixi.toml` and replace the
 (the `--overrides` file upstream's `isaaclab[isaacsim]` install uses; pixi has no
 `--overrides` flag), then run `pixi install`.
 
+## Browser demo (mjswan)
+
+`scripts/mjswan/` runs the `Mad-Rl-Rough` policy in MuJoCo on the lab course from
+`mad_assets/scenes/default.usd` (12 cm and 25 cm stairs, ramp, brick road) and builds it into a
+static browser app with [mjswan](https://mjswan.readthedocs.io). Needs `uv`, nothing from pixi:
+
+```bash
+uv run scripts/mjswan/rollout.py            # headless check + videos in scripts/mjswan/videos
+uv run scripts/mjswan/build.py              # build scripts/mjswan/dist and serve on localhost:8080
+uv run scripts/mjswan/build.py --publish    # upload to mjswan Cloud (GitHub sign-in)
+```
+
+`MAD_RL_CHECKPOINT` picks the policy: an rsl-rl `model_*.pt` or an exported `policy.pt`
+(default: the blind policy in `2026-03-21_12-27-55__blind/`). `task.py` mirrors the Isaac Lab task cfgs by hand:
+change it when observations, actions or gains change there.
+
 ## Docker
 
 `Dockerfile` / `compose.yaml` predate Isaac Lab 3.0 and are not updated yet.

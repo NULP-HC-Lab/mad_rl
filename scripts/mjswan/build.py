@@ -1,6 +1,12 @@
 # /// script
 # requires-python = ">=3.12,<3.13"
-# dependencies = ["mjswan[examples]==0.11.6", "usd-core==26.8"]
+# dependencies = ["mjswan[examples]==0.11.6"]
+# [tool.uv.sources]
+# torch = { index = "pytorch-cpu" }
+# [[tool.uv.index]]
+# name = "pytorch-cpu"
+# url = "https://download.pytorch.org/whl/cpu"
+# explicit = true
 # ///
 """Build the AME-2 G1 policy on the lab course into a browser app with mjswan.
 

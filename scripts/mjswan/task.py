@@ -5,8 +5,8 @@ The policy is the authors' `modelzoo/g1_gaze_64000env_10h/model_2400.pt`: a goal
 Everything below mirrors their Isaac Lab 2.3 cfgs at commit `AME2_SHA`
 (`ame2/ame2/tasks/ame2_env_cfg.py`, `assets/unitree.py`, `rsl_rl/models/AME2_models.py`).
 
-Terrain is the lab course from `$MAD_ASSETS_PATH/scenes/default.usd` (stairs, ramps, pallets,
-brick road), converted from its collision prims.
+Terrain is the lab course (stairs, ramps, pallets, brick road) baked into `course.xml`, plus
+wide stairs.
 """
 
 from __future__ import annotations
@@ -17,7 +17,6 @@ import urllib.request
 from pathlib import Path
 
 import mujoco
-import numpy as np
 import onnx
 import torch
 import torch.nn.functional as F
@@ -40,8 +39,6 @@ from mjlab.utils.spec_config import CollisionCfg
 from mjlab.viewer import ViewerConfig
 from torch import nn
 
-REPO = Path(__file__).resolve().parents[2]
-MAD_ASSETS = Path(os.environ.get("MAD_ASSETS_PATH", REPO.parent / "mad_assets"))
 AME2_SHA = "8beb9a688d67882828019583f7d5a78e3517f233"
 AME2_URL = (
     f"https://github.com/leggedrobotics/ame2_minimal/raw/{AME2_SHA}/modelzoo/g1_gaze_64000env_10h/model_2400.pt"
@@ -278,53 +275,9 @@ def env_cfg(
 
 
 def course_spec() -> mujoco.MjSpec:
-    """Collision geometry of the lab scene as static MuJoCo geoms (also used as visuals)."""
-    from pxr import Gf, Usd, UsdGeom, UsdPhysics
-
-    stage = Usd.Stage.Open(str(MAD_ASSETS / "scenes" / "default.usd"))
-    spec = mujoco.MjSpec()
+    """The lab course (`course.xml`, baked from mad_assets by `bake_course.py`) plus wide stairs."""
+    spec = mujoco.MjSpec.from_file(str(Path(__file__).parent / "course.xml"))
     root = spec.worldbody
-    spec.add_material(name="wood", rgba=(0.62, 0.48, 0.33, 1))
-    spec.add_material(name="steel", rgba=(0.55, 0.57, 0.6, 1))
-    spec.add_material(name="stone", rgba=(0.45, 0.42, 0.4, 1))
-
-    for prim in stage.Traverse():
-        path = str(prim.GetPath())
-        if not prim.HasAPI(UsdPhysics.CollisionAPI) or not path.startswith(("/env", "/equipment")):
-            continue
-        if "/floor/" in path:  # the terrain plane
-            continue
-        name = path.strip("/").replace("/", "__")
-        xf = UsdGeom.Xformable(prim).ComputeLocalToWorldTransform(Usd.TimeCode.Default())
-        if prim.IsA(UsdGeom.Cube):
-            t = Gf.Transform(xf)
-            q = t.GetRotation().GetQuat()
-            half = np.array(t.GetScale()) * UsdGeom.Cube(prim).GetSizeAttr().Get() / 2
-            pos = np.array(t.GetTranslation())
-            if "/step_" in path:
-                # The USD steps are 2-5 cm slabs floating over open risers; the toe catches
-                # under the next slab and the robot trips. The visual stairs are solid to the
-                # floor, so fill each step down to z=0.
-                top = pos[2] + half[2]
-                half[2], pos[2] = top / 2, top / 2
-            root.add_geom(
-                name=name,
-                type=mujoco.mjtGeom.mjGEOM_BOX,
-                size=half,
-                pos=pos,
-                quat=[q.GetReal(), *q.GetImaginary()],
-                material="wood" if "pallet" in path else "steel",
-            )
-            continue
-        # Meshes: bake the world transform into the points (row-vector convention).
-        pts = np.array(UsdGeom.Mesh(prim).GetPointsAttr().Get(), dtype=np.float64)
-        m = np.array(xf)
-        pts = pts @ m[:3, :3] + m[3, :3]
-        if "brick_road" in path:
-            _add_heightfield(spec, name, pts)
-        else:  # the ramp: a wedge, its convex hull is exact enough
-            spec.add_mesh(name=name, uservert=pts.astype(np.float32).ravel())
-            root.add_geom(name=name, type=mujoco.mjtGeom.mjGEOM_MESH, meshname=name, material="wood")
     # Not in the lab: wide stairs up and down on the free floor, like the authors' pyramid stairs.
     for i in range(2 * STAIRS_N - 1):
         level = min(i, 2 * STAIRS_N - 2 - i) + 1
@@ -338,31 +291,6 @@ def course_spec() -> mujoco.MjSpec:
 
 
 STAIRS_X0, STAIRS_STEP, STAIRS_N, STAIRS_TREAD, STAIRS_PLATFORM = -9.0, 0.20, 4, 0.30, 1.2
-
-
-def _add_heightfield(spec: mujoco.MjSpec, name: str, pts: np.ndarray, res: float = 0.05) -> None:
-    """Rasterize a dense surface mesh (1.3 M points for the brick road) into an hfield.
-
-    At 2 cm, MuJoCo-Warp overflows its 50 contacts per hfield pair under a G1 foot and drops
-    contacts (robots trip at the road's edge); 5 cm keeps it under the limit.
-    """
-    lo, hi = pts[:, :2].min(0), pts[:, :2].max(0)
-    ncol, nrow = np.ceil((hi - lo) / res).astype(int) + 1
-    ix = np.clip(((pts[:, 0] - lo[0]) / res).astype(int), 0, ncol - 1)
-    iy = np.clip(((pts[:, 1] - lo[1]) / res).astype(int), 0, nrow - 1)
-    z = np.full((nrow, ncol), -np.inf)
-    np.maximum.at(z, (iy, ix), pts[:, 2])
-    while np.isinf(z).any():  # fill the few empty cells from their neighbours
-        pad = np.pad(z, 1, constant_values=-np.inf)
-        nb = np.max([pad[:-2, 1:-1], pad[2:, 1:-1], pad[1:-1, :-2], pad[1:-1, 2:]], axis=0)
-        z = np.where(np.isinf(z), nb, z)
-    zmax = z.max()
-    half = (hi - lo) / 2
-    # MuJoCo hfield: row 0 is -y, column 0 is -x; data normalized to [0, 1] * size[2].
-    spec.add_hfield(name=name, nrow=nrow, ncol=ncol, size=[half[0], half[1], zmax, 0.05], userdata=(z / zmax).ravel())
-    spec.worldbody.add_geom(
-        name=name, type=mujoco.mjtGeom.mjGEOM_HFIELD, hfieldname=name, pos=[*(lo + half), 0], material="stone"
-    )
 
 
 # One scene per station: spawn facing the obstacle, goal past it with the same heading.

@@ -1,6 +1,6 @@
 # /// script
 # requires-python = ">=3.12,<3.13"
-# dependencies = ["mjswan[examples]==0.11.6", "usd-core==26.8"]
+# dependencies = ["mjswan[examples]==0.11.6"]
 # ///
 """Headless check of the policy in mjlab on every lab station: falls, goals reached, one video each.
 

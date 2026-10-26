@@ -1,0 +1,102 @@
+# The mjswan browser demo: build it, run the policy the way the browser does, load it in Chromium.
+# All on CPU (scripts/mjswan/check.py, smoke.py). Ready PRs also get a non-blocking comment with
+# 32-trial success rates of the PR and its base.
+name: mjswan policy
+
+on:
+  push:
+    branches: [main]
+    paths: ["scripts/mjswan/**", ".github/workflows/mjswan.yml"]
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths: ["scripts/mjswan/**", ".github/workflows/mjswan.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: mjswan-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash  # -eo pipefail, so `check.py | tee` fails when check.py does
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        with:
+          version: "0.9.26"
+          enable-cache: true
+          cache-dependency-glob: scripts/mjswan/*.py
+      # The file name does not encode the checkpoint's commit: exact key, never restore-keys.
+      - uses: actions/cache@v6
+        with:
+          path: scripts/mjswan/.cache
+          key: ame2-${{ hashFiles('scripts/mjswan/task.py') }}
+      - run: uv run scripts/mjswan/build.py --no-launch
+      - run: uv run scripts/mjswan/check.py --trials 4 | tee -a "$GITHUB_STEP_SUMMARY"
+      - run: uv run --with playwright==1.55.0 playwright install --with-deps chromium
+      - run: uv run scripts/mjswan/smoke.py --out screenshots
+      - if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: screenshots
+          path: screenshots
+          if-no-files-found: ignore
+
+  pr-stats:
+    if: >-
+      github.event_name == 'pull_request' && !github.event.pull_request.draft &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    continue-on-error: true
+    permissions:
+      contents: read
+      pull-requests: write
+    env:
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      PR: ${{ github.event.pull_request.number }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        with:
+          version: "0.9.26"
+          enable-cache: true
+          cache-dependency-glob: scripts/mjswan/*.py
+      - uses: actions/cache@v6
+        with:
+          path: scripts/mjswan/.cache
+          key: ame2-${{ hashFiles('scripts/mjswan/task.py') }}
+      - name: Evaluate the PR and its base
+        run: |
+          evaluate() {  # $1: repo root; prints the markdown table or why there is none
+            if [ ! -f "$1/scripts/mjswan/check.py" ]; then echo "No \`check.py\` here yet."; return; fi
+            uv run "$1/scripts/mjswan/build.py" --no-launch >&2 &&
+              uv run "$1/scripts/mjswan/check.py" --trials 32 || echo "Exit $?: under the 75 % gate, or a crash (see the workflow log)."
+          }
+          git fetch --depth=1 origin "$BASE_SHA"
+          git worktree add "$RUNNER_TEMP/base" "$BASE_SHA"
+          {
+            echo "### mjswan policy: 32 jittered trials per scene"
+            echo
+            echo "C MuJoCo on the built browser scenes, as the browser runs them. Not blocking."
+            echo
+            echo "**This PR** (${HEAD_SHA::7})"
+            echo
+            evaluate .
+            echo
+            echo "**Base** (${BASE_SHA::7})"
+            echo
+            evaluate "$RUNNER_TEMP/base"
+          } > comment.md
+          cat comment.md >> "$GITHUB_STEP_SUMMARY"
+      - run: gh pr comment "$PR" --edit-last --create-if-none --body-file comment.md

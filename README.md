@@ -50,16 +50,21 @@ Bump the `isaaclab` pin in `pixi.toml` and replace the
 
 `scripts/mjswan/` runs ETH's AME-2 G1 teacher
 ([leggedrobotics/ame2_minimal](https://github.com/leggedrobotics/ame2_minimal),
-`modelzoo/g1_gaze_64000env_10h/model_2400.pt`, GPL-3.0) in MuJoCo on the lab course from
-`mad_assets/scenes/default.usd` (12 cm stairs, ramp, brick road) plus wide 20 cm stairs, and
-builds it into a static browser app with [mjswan](https://mjswan.readthedocs.io). Needs `uv`,
-nothing from pixi:
+`modelzoo/g1_gaze_64000env_10h/model_2400.pt`, GPL-3.0) in MuJoCo on the lab course
+(12 cm stairs, ramp, brick road) plus wide 20 cm stairs, and builds it into a static browser
+app with [mjswan](https://mjswan.readthedocs.io). Needs `uv`, nothing from pixi:
 
 ```bash
-uv run scripts/mjswan/rollout.py            # 32 jittered trials per station + videos in scripts/mjswan/videos
+uv run scripts/mjswan/rollout.py            # 32 jittered trials per station + videos in scripts/mjswan/videos (GPU)
 uv run scripts/mjswan/build.py              # build scripts/mjswan/dist and serve on localhost:8080
+uv run scripts/mjswan/check.py              # CPU: the built app's policy and scenes, as the browser runs them
+uv run scripts/mjswan/smoke.py              # every scene loads and runs in headless Chromium
 uv run scripts/mjswan/build.py --publish    # upload to mjswan Cloud (GitHub sign-in)
+uv run scripts/mjswan/bake_course.py        # re-bake course.xml after the course changes in mad_assets
 ```
+
+The course geometry is baked into `scripts/mjswan/course.xml` from `mad_assets/scenes/default.usd`,
+so nothing here needs mad_assets except `bake_course.py`.
 
 The checkpoint is downloaded once (83 MB, pinned commit) into `scripts/mjswan/.cache/`;
 `MAD_RL_CHECKPOINT` points elsewhere. The policy is goal-reaching: each scene has a fixed goal
@@ -69,6 +74,13 @@ its output was checked against the original class.
 
 Not the lab's 25 cm stairs: they are 0.61 m wide and the policy walks around them (on wide
 stairs it climbs 25 cm in 14 of 16 trials).
+
+CI (`.github/workflows/mjswan.yml`, CPU only) runs on changes under `scripts/mjswan/`:
+`build.py`, then `check.py` (ONNX matches `task.actor()`, every scene reaches its goal in at
+least 3 of 4 seeded trials), then `smoke.py`. `smoke.py` catches a broken JS runtime or mjswan
+upgrade, not gait. `check.py` reads the rays, rest pose and action scale from the built manifest,
+so a build that drops one fails there. Ready PRs also get a non-blocking comment with 32-trial
+success rates for the PR and its base.
 
 ## Docker
 

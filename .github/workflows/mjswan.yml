@@ -6,10 +6,10 @@ name: mjswan policy
 on:
   push:
     branches: [main]
-    paths: ["scripts/mjswan/**", ".github/workflows/mjswan.yml"]
+    paths: ["scripts/mjswan/**", ".github/workflows/mjswan*.yml"]
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
-    paths: ["scripts/mjswan/**", ".github/workflows/mjswan.yml"]
+    paths: ["scripts/mjswan/**", ".github/workflows/mjswan*.yml"]
   workflow_dispatch:
 
 concurrency:
@@ -59,7 +59,7 @@ jobs:
       - uses: astral-sh/setup-uv@v10.3.2
         with:
           version: "0.9.26"
-      - run: uvx pre-commit@4.0.1 run --show-diff-on-failure --files scripts/mjswan/*.py .github/workflows/mjswan.yml
+      - run: uvx pre-commit@4.0.1 run --show-diff-on-failure --files scripts/mjswan/*.py .github/workflows/mjswan*.yml
 
   pr-stats:
     if: >-

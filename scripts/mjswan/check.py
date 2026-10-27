@@ -221,6 +221,7 @@ def main() -> None:
     parser.add_argument("--trials", type=int, default=4)
     parser.add_argument("--seconds", type=float, default=20.0)
     parser.add_argument("--sweep", action="store_true", help="also run the perturbed trials")
+    parser.add_argument("--sweep-trials", type=int, help="trials per scene and perturbation (default: --trials)")
     args = parser.parse_args()
 
     diff, used = check_parity(args.dist)
@@ -230,17 +231,19 @@ def main() -> None:
     project = json.loads((args.dist / "manifest.json").read_text())["projects"][0]
     scenes = project["scenes"]
     conditions = [{}, *SWEEP.values()] if args.sweep else [{}]
-    jobs = [
-        (str(args.dist / project["id"] / s["id"]), s, args.seconds, seed, c.get("push", 0.0), c.get("friction"))
-        for c in conditions
-        for s in scenes
-        for seed in range(args.trials)
-    ]
+    n_sweep = args.sweep_trials or args.trials
+    keys, jobs = [], []  # keys[k] = (condition, scene) of jobs[k]
+    for c, cond in enumerate(conditions):
+        for i, s in enumerate(scenes):
+            for seed in range(n_sweep if c else args.trials):
+                keys.append((c, i))
+                path = str(args.dist / project["id"] / s["id"])
+                jobs.append((path, s, args.seconds, seed, cond.get("push", 0.0), cond.get("friction")))
     with multiprocessing.get_context("spawn").Pool(len(os.sched_getaffinity(0))) as pool:
         results = pool.starmap(trial, jobs, chunksize=1)
 
     def score(c: int, i: int) -> tuple[int, int]:  # (reached, falls) of condition c, scene i
-        res = results[(c * len(scenes) + i) * args.trials :][: args.trials]
+        res = [r for k, r in zip(keys, results) if k == (c, i)]
         return sum(not fell and dist < 0.5 for fell, dist in res), sum(fell for fell, _ in res)
 
     print(f"{args.trials} trials of {args.seconds:g} s per scene, trial 0 at the spawn:\n")
@@ -251,7 +254,8 @@ def main() -> None:
         failed |= reached < MIN_RATE * args.trials
     if args.sweep:
         print("\nRobustness, not gated: reached goal / falls. Pushes kick the base every 3-5 s by up to the")
-        print("given speed in x and y; foot μ replaces the feet's friction (nominal 1.0).\n")
+        print("given speed in x and y; foot μ replaces the feet's friction (nominal 1.0). Trials per scene:")
+        print(f"{args.trials} nominal, {n_sweep} per perturbation.\n")
         print("| Scene | nominal | " + " | ".join(SWEEP) + " |\n|---|---|" + "---|" * len(SWEEP))
         for i, s in enumerate(scenes):
             print(f"| {s['name']} | " + " | ".join("%d / %d" % score(c, i) for c in range(len(conditions))) + " |")

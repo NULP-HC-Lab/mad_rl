@@ -1,6 +1,6 @@
 # The mjswan browser demo: build it, run the policy the way the browser does, load it in Chromium.
 # All on CPU (scripts/mjswan/check.py, smoke.py). Ready PRs also get a non-blocking comment with
-# 32-trial success rates of the PR (plus pushes and slippery feet, see check.py --sweep) and its base.
+# 32-trial success rates of the PR and its base, plus the PR under pushes and slippery feet (16 each).
 name: mjswan policy
 
 on:
@@ -97,13 +97,13 @@ jobs:
           git fetch --depth=1 origin "$BASE_SHA"
           git worktree add "$RUNNER_TEMP/base" "$BASE_SHA"
           {
-            echo "### mjswan policy: 32 jittered trials per scene"
+            echo "### mjswan policy: 32 jittered trials per scene, 16 per perturbation"
             echo
             echo "C MuJoCo on the built browser scenes, as the browser runs them. Not blocking."
             echo
             echo "**This PR** (${HEAD_SHA::7})"
             echo
-            evaluate . --sweep  # the base may predate --sweep
+            evaluate . --sweep --sweep-trials 16  # the base may predate --sweep; 32 each takes ~50 min
             echo
             echo "**Base** (${BASE_SHA::7})"
             echo

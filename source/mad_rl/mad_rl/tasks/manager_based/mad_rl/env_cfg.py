@@ -1,5 +1,6 @@
 from isaaclab.envs import ManagerBasedRLEnvCfg
-from isaaclab.utils import configclass
+from isaaclab.utils.configclass import configclass
+from isaaclab_physx.physics import PhysxCfg
 
 from .actions_cfg import ActionsCfg
 from .commands_cfg import CommandsCfg
@@ -29,7 +30,8 @@ class EnvCfg(ManagerBasedRLEnvCfg):
         self.sim.dt = 0.005
         self.sim.render_interval = self.decimation
         self.sim.physics_material = self.scene.terrain.physics_material
-        self.sim.physx.gpu_max_rigid_patch_count = 10 * 2**15
+        # locomotion velocity env defaults to Newton
+        self.sim.physics = PhysxCfg(gpu_max_rigid_patch_count=10 * 2**15)
 
         if self.scene.torso_contact_forces is not None:
             self.scene.torso_contact_forces.update_period = self.sim.dt

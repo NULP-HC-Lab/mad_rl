@@ -71,3 +71,8 @@ tests/
 !.pixi/config.toml
 
 .env
+
+# mjswan build output, smoke-test screenshots and the downloaded AME-2 checkpoint
+scripts/mjswan/dist/
+scripts/mjswan/.cache/
+scripts/mjswan/screenshots/

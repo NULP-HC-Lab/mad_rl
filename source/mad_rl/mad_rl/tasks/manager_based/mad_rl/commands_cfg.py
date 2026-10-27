@@ -1,5 +1,5 @@
-from isaaclab.utils import configclass
-from isaaclab_tasks.manager_based.locomotion.velocity import mdp
+from isaaclab.utils.configclass import configclass
+from isaaclab_tasks.core.velocity import mdp
 
 
 @configclass

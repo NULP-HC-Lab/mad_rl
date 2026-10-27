@@ -1,7 +1,13 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import torch
-from isaaclab.envs import ManagerBasedRLEnv
 from isaaclab.managers import SceneEntityCfg
-from isaaclab.sensors import ContactSensor
+
+if TYPE_CHECKING:
+    from isaaclab.envs import ManagerBasedRLEnv
+    from isaaclab.sensors import ContactSensor
 
 
 def feet_air_time_positive_biped(

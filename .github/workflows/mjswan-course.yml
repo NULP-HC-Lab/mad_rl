@@ -1,0 +1,96 @@
+# Keeps scripts/mjswan/course.xml in sync with the lab course in NULP-HC-Lab/mad_assets. Hourly, but
+# only for a mad_assets commit no run has seen yet (it is 356 MB of LFS): re-bake, and if the geometry
+# changed, run the policy on it and open a PR with the result.
+name: mjswan course
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: mjswan-course
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  bake:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+      BRANCH: bot/course-xml
+      MAD_ASSETS_PATH: ${{ github.workspace }}/mad_assets
+    steps:
+      - id: head
+        run: echo "sha=$(git ls-remote https://github.com/NULP-HC-Lab/mad_assets HEAD | cut -f1)" >> "$GITHUB_OUTPUT"
+      # Scheduled runs skip a commit an earlier run handled; a manual run always bakes.
+      - id: seen
+        if: github.event_name == 'schedule'
+        uses: actions/cache/restore@v6
+        with:
+          path: .mad-assets-seen
+          key: mad-assets-${{ steps.head.outputs.sha }}
+          lookup-only: true
+      - if: steps.seen.outputs.cache-hit != 'true'
+        uses: actions/checkout@v7
+      - if: steps.seen.outputs.cache-hit != 'true'
+        uses: actions/checkout@v7
+        with:
+          repository: NULP-HC-Lab/mad_assets
+          ref: ${{ steps.head.outputs.sha }}
+          path: mad_assets
+          lfs: true
+      - if: steps.seen.outputs.cache-hit != 'true'
+        uses: astral-sh/setup-uv@v10.3.2
+        with:
+          version: "0.9.26"
+          enable-cache: true
+          cache-dependency-glob: scripts/mjswan/*.py
+      - id: bake
+        if: steps.seen.outputs.cache-hit != 'true'
+        run: |
+          uv run scripts/mjswan/bake_course.py --check && exit 0
+          uv run scripts/mjswan/bake_course.py
+          echo stale=true >> "$GITHUB_OUTPUT"
+      - if: steps.bake.outputs.stale
+        uses: actions/cache@v6
+        with:
+          path: scripts/mjswan/.cache
+          key: ame2-${{ hashFiles('scripts/mjswan/task.py') }}
+      # A PR opened with GITHUB_TOKEN starts no workflows, so the PR carries this run's check instead.
+      - if: steps.bake.outputs.stale
+        run: |
+          sha=${{ steps.head.outputs.sha }}
+          {
+            echo "Re-baked from NULP-HC-Lab/mad_assets@${sha::7} by the \`mjswan course\` workflow."
+            echo
+            uv run scripts/mjswan/build.py --no-launch >&2 && uv run scripts/mjswan/check.py --trials 4 ||
+              echo "**check.py failed (exit $?)**: see $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          } > body.md
+          cat body.md >> "$GITHUB_STEP_SUMMARY"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -C "$BRANCH"
+          git commit -m "chore: re-bake course.xml from mad_assets ${sha::7}" scripts/mjswan/course.xml
+          git push -f origin "$BRANCH"
+          if gh pr view "$BRANCH" --json state -q .state | grep -q OPEN; then
+            gh pr comment "$BRANCH" --body-file body.md
+          else
+            gh pr create --base "$GITHUB_REF_NAME" --head "$BRANCH" --title "chore: re-bake course.xml from mad_assets ${sha::7}" --body-file body.md
+          fi
+      # Even after a failure: retrying hourly would pull the LFS again each time; rerun it by hand.
+      - if: always() && steps.seen.outputs.cache-hit != 'true'
+        run: touch .mad-assets-seen
+      - if: always() && steps.seen.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: .mad-assets-seen
+          key: mad-assets-${{ steps.head.outputs.sha }}

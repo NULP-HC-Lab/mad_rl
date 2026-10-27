@@ -11,10 +11,16 @@ if TYPE_CHECKING:
 
 def apply_default_joint_position(
     env: ManagerBasedEnv,
-    env_ids: torch.Tensor,
+    env_ids: torch.Tensor | None,
     asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
 ):
     robot = env.scene[asset_cfg.name]
+
+    # Startup events are called with env_ids=None, which as an index means
+    # `newaxis` and silently prepends a dimension. Isaac Lab 3.0 asserts the
+    # target shape, so resolve it the way isaaclab.envs.mdp.events does.
+    if env_ids is None:
+        env_ids = torch.arange(env.scene.num_envs, device=robot.device)
 
     default_joint_pos = robot.data.default_joint_pos[env_ids, asset_cfg.joint_ids].clone()
 

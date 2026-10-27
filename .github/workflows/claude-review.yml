@@ -1,0 +1,54 @@
+# Claude reviews each ready PR and comments; it never blocks a merge and approves nothing.
+# Needs a repo secret: CLAUDE_CODE_OAUTH_TOKEN (`claude setup-token`, a Pro/Max plan) or
+# ANTHROPIC_API_KEY. Without one the job skips.
+name: claude review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    if: >-
+      !github.event.pull_request.draft &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    continue-on-error: true
+    permissions:
+      contents: read
+      pull-requests: write
+    env:
+      HAS_KEY: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' || secrets.ANTHROPIC_API_KEY != '' }}
+    steps:
+      - if: env.HAS_KEY != 'true'
+        run: echo "::notice::No CLAUDE_CODE_OAUTH_TOKEN or ANTHROPIC_API_KEY secret; skipping the review."
+      - if: env.HAS_KEY == 'true'
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+      - if: env.HAS_KEY == 'true'
+        uses: anthropics/claude-code-action@v1.0.263
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ github.token }}  # comments as github-actions; no Claude GitHub App needed
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            Review this pull request. The PR branch is checked out in the working directory.
+            This repo trains and evaluates locomotion policies for a Unitree G1 humanoid
+            (Isaac Lab tasks under source/, the MuJoCo/browser demo and its CI under scripts/mjswan/).
+
+            Report only concrete problems, most severe first: bugs, a policy observation or action
+            that no longer matches what the policy was trained on, a scene or CI check that would
+            pass while broken, reproducibility (unpinned versions), and missing docs for changed usage.
+            Put each problem as an inline comment on its line, then one short summary comment with
+            `gh pr comment`. Say so plainly if you find nothing; do not pad with style nits.
+          claude_args: |
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"

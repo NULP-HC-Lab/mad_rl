@@ -24,7 +24,9 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-RUN groupadd --gid ${GID} ${USERNAME} \
+# noble ships an `ubuntu` user that already holds UID/GID 1000.
+RUN userdel -r ubuntu \
+    && groupadd --gid ${GID} ${USERNAME} \
     && useradd --uid ${UID} --gid ${GID} -m ${USERNAME}
 
 USER ${USERNAME}

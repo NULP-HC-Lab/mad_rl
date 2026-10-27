@@ -6,10 +6,14 @@ import torch
 from isaaclab.managers import SceneEntityCfg
 
 if TYPE_CHECKING:
+    # Importing the sensor classes for real pulls in `pxr`, and Isaac Sim segfaults
+    # if USD is loaded before SimulationApp starts. Config modules are imported
+    # during task resolution, i.e. before launch, so these stay type-only.
+    # This `pxr` is pissing me off.
     from isaaclab.envs import ManagerBasedEnv
+    from isaaclab.sensors import RayCaster
 
 from isaaclab.envs.utils.io_descriptors import generic_io_descriptor
-from isaaclab.sensors import RayCaster
 
 from .io_descriptors import record_height_scan_params
 

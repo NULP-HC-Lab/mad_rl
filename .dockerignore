@@ -29,3 +29,5 @@ docker/.isaac-lab-docker-history
 # ignore uv environment
 env_isaaclab
 .pixi/
+# compose passes .env at runtime (env_file); keep secrets out of image layers
+.env

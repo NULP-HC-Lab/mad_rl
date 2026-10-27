@@ -50,6 +50,17 @@ jobs:
           path: screenshots
           if-no-files-found: ignore
 
+  # The repo's pre-commit hooks (black, flake8, isort, ...) on this workflow's files.
+  lint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.2
+        with:
+          version: "0.9.26"
+      - run: uvx pre-commit@4.0.1 run --show-diff-on-failure --files scripts/mjswan/*.py .github/workflows/mjswan.yml
+
   pr-stats:
     if: >-
       github.event_name == 'pull_request' && !github.event.pull_request.draft &&

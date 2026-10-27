@@ -41,9 +41,8 @@ os.environ.setdefault("MUJOCO_GL", "disable")
 import mujoco
 import numpy as np
 import onnxruntime as ort
-import torch
-
 import task
+import torch
 
 MIN_RATE = 0.75
 SWEEP = {  # 2 m/s already topples a quarter of the trials
@@ -76,7 +75,9 @@ def _yaw_quat(yaw: float) -> np.ndarray:
     return np.array([math.cos(yaw / 2), 0.0, 0.0, math.sin(yaw / 2)])
 
 
-def trial(scene_dir: str, scene: dict, seconds: float, seed: int, push: float = 0.0, friction: float | None = None) -> tuple[bool, float]:
+def trial(
+    scene_dir: str, scene: dict, seconds: float, seed: int, push: float = 0.0, friction: float | None = None
+) -> tuple[bool, float]:
     """One episode; returns (fell, distance from the goal at the end)."""
     m = _model(f"{scene_dir}/{scene['scene']}", friction)
     d = mujoco.MjData(m)
@@ -85,7 +86,9 @@ def trial(scene_dir: str, scene: dict, seconds: float, seed: int, push: float = 
     mdp = next(x for x in scene["mdps"] if x["id"] == pol["mdp"])
     station = task.STATIONS[scene["name"]]
     root = m.jnt_bodyid[list(m.jnt_type).index(mujoco.mjtJoint.mjJNT_FREE)]
-    joints = [j for j in range(m.njnt) if m.jnt_type[j] != mujoco.mjtJoint.mjJNT_FREE and m.joint(j).name.startswith("robot/")]
+    joints = [
+        j for j in range(m.njnt) if m.jnt_type[j] != mujoco.mjtJoint.mjJNT_FREE and m.joint(j).name.startswith("robot/")
+    ]
     qadr, vadr = m.jnt_qposadr[joints], m.jnt_dofadr[joints]
 
     events = task.env_cfg(**station, jitter=True, push=push).events
@@ -144,10 +147,16 @@ def trial(scene_dir: str, scene: dict, seconds: float, seed: int, push: float = 
     history: dict[str, list] = {}
 
     def observe(group) -> np.ndarray:
-        terms = [{"name": "fused", "onnx": group["fused"], "input_slots": group["input_slots"]}] if isinstance(group, dict) else group
+        terms = (
+            [{"name": "fused", "onnx": group["fused"], "input_slots": group["input_slots"]}]
+            if isinstance(group, dict)
+            else group
+        )
         parts = []
         for t in terms:
-            feeds = {sl["input"]: np.asarray(slot(sl, group), np.float32).reshape(sl["shape"]) for sl in t["input_slots"]}
+            feeds = {
+                sl["input"]: np.asarray(slot(sl, group), np.float32).reshape(sl["shape"]) for sl in t["input_slots"]
+            }
             v = _session(f"{scene_dir}/{t['onnx']}").run(None, feeds)[0].reshape(-1)
             if t.get("history_length", 0) > 1:
                 h = history.setdefault(t["name"], [v] * t["history_length"])
@@ -202,7 +211,9 @@ def main() -> None:
     conditions = [{}, *SWEEP.values()] if args.sweep else [{}]
     jobs = [
         (str(args.dist / project["id"] / s["id"]), s, args.seconds, seed, c.get("push", 0.0), c.get("friction"))
-        for c in conditions for s in scenes for seed in range(args.trials)
+        for c in conditions
+        for s in scenes
+        for seed in range(args.trials)
     ]
     with multiprocessing.get_context("spawn").Pool(len(os.sched_getaffinity(0))) as pool:
         results = pool.starmap(trial, jobs, chunksize=1)

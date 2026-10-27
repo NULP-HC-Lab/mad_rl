@@ -10,9 +10,9 @@
 # ///
 """Build the AME-2 G1 policy on the lab course into a browser app with mjswan.
 
-    uv run scripts/mjswan/build.py             # build scripts/mjswan/dist and serve it locally
-    uv run scripts/mjswan/build.py --no-launch # build only
-    uv run scripts/mjswan/build.py --publish   # build and upload to mjswan Cloud (GitHub login)
+uv run scripts/mjswan/build.py             # build scripts/mjswan/dist and serve it locally
+uv run scripts/mjswan/build.py --no-launch # build only
+uv run scripts/mjswan/build.py --publish   # build and upload to mjswan Cloud (GitHub login)
 """
 
 import argparse
@@ -20,7 +20,6 @@ import re
 from pathlib import Path
 
 import mjswan
-
 import task
 
 parser = argparse.ArgumentParser()

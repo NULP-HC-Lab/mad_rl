@@ -27,6 +27,7 @@ parser.add_argument("--out", type=Path, default=Path(__file__).parent / "screens
 args = parser.parse_args()
 args.out.mkdir(parents=True, exist_ok=True)
 
+
 class Handler(http.server.SimpleHTTPRequestHandler):
     def log_message(self, *a):
         pass
@@ -38,7 +39,9 @@ project = json.loads((args.dist / "manifest.json").read_text())["projects"][0]
 
 failed = False
 with sync_playwright() as p:
-    browser = p.chromium.launch(args=["--enable-unsafe-swiftshader", "--use-angle=swiftshader", "--ignore-gpu-blocklist"])
+    browser = p.chromium.launch(
+        args=["--enable-unsafe-swiftshader", "--use-angle=swiftshader", "--ignore-gpu-blocklist"]
+    )
     for scene in project["scenes"]:
         page = browser.new_page(viewport={"width": 1280, "height": 720})
         errors = []

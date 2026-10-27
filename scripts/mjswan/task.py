@@ -23,8 +23,7 @@ import torch.nn.functional as F
 from mjlab.actuator import BuiltinPositionActuatorCfg
 from mjlab.asset_zoo.robots.unitree_g1.g1_constants import FULL_COLLISION, get_spec
 from mjlab.entity import EntityArticulationInfoCfg, EntityCfg
-from mjlab.envs import ManagerBasedRlEnvCfg
-from mjlab.envs import mdp
+from mjlab.envs import ManagerBasedRlEnvCfg, mdp
 from mjlab.envs.mdp.actions import JointPositionActionCfg
 from mjlab.managers.event_manager import EventTermCfg
 from mjlab.managers.observation_manager import ObservationGroupCfg, ObservationTermCfg
@@ -40,31 +39,55 @@ from mjlab.viewer import ViewerConfig
 from torch import nn
 
 AME2_SHA = "8beb9a688d67882828019583f7d5a78e3517f233"
-AME2_URL = (
-    f"https://github.com/leggedrobotics/ame2_minimal/raw/{AME2_SHA}/modelzoo/g1_gaze_64000env_10h/model_2400.pt"
-)
-CHECKPOINT = Path(
-    os.environ.get("MAD_RL_CHECKPOINT", Path(__file__).parent / ".cache" / "ame2_g1_gaze_model_2400.pt")
-)
+AME2_URL = f"https://github.com/leggedrobotics/ame2_minimal/raw/{AME2_SHA}/modelzoo/g1_gaze_64000env_10h/model_2400.pt"
+CHECKPOINT = Path(os.environ.get("MAD_RL_CHECKPOINT", Path(__file__).parent / ".cache" / "ame2_g1_gaze_model_2400.pt"))
 
 # Isaac Lab's (PhysX breadth-first) joint order: the policy's obs and actions. Taken from
 # `_switch_joints_lr_g1` in ame2/tasks/mdp/symmetry.py.
 POLICY_JOINTS = [
     f"{p}_joint"
     for p in (
-        "left_hip_pitch", "right_hip_pitch", "waist_yaw", "left_hip_roll", "right_hip_roll", "waist_roll",
-        "left_hip_yaw", "right_hip_yaw", "waist_pitch", "left_knee", "right_knee", "left_shoulder_pitch",
-        "right_shoulder_pitch", "left_ankle_pitch", "right_ankle_pitch", "left_shoulder_roll",
-        "right_shoulder_roll", "left_ankle_roll", "right_ankle_roll", "left_shoulder_yaw",
-        "right_shoulder_yaw", "left_elbow", "right_elbow",
+        "left_hip_pitch",
+        "right_hip_pitch",
+        "waist_yaw",
+        "left_hip_roll",
+        "right_hip_roll",
+        "waist_roll",
+        "left_hip_yaw",
+        "right_hip_yaw",
+        "waist_pitch",
+        "left_knee",
+        "right_knee",
+        "left_shoulder_pitch",
+        "right_shoulder_pitch",
+        "left_ankle_pitch",
+        "right_ankle_pitch",
+        "left_shoulder_roll",
+        "right_shoulder_roll",
+        "left_ankle_roll",
+        "right_ankle_roll",
+        "left_shoulder_yaw",
+        "right_shoulder_yaw",
+        "left_elbow",
+        "right_elbow",
     )
 ]
 # MuJoCo's own order. mjlab ignores `preserve_order` for joint actions, so the sim side uses
 # this order everywhere and the exported ONNX permutes.
 MODEL_JOINTS = [
-    *(f"{s}_{j}_joint" for s in ("left", "right") for j in ("hip_pitch", "hip_roll", "hip_yaw", "knee", "ankle_pitch", "ankle_roll")),
-    "waist_yaw_joint", "waist_roll_joint", "waist_pitch_joint",
-    *(f"{s}_{j}_joint" for s in ("left", "right") for j in ("shoulder_pitch", "shoulder_roll", "shoulder_yaw", "elbow")),
+    *(
+        f"{s}_{j}_joint"
+        for s in ("left", "right")
+        for j in ("hip_pitch", "hip_roll", "hip_yaw", "knee", "ankle_pitch", "ankle_roll")
+    ),
+    "waist_yaw_joint",
+    "waist_roll_joint",
+    "waist_pitch_joint",
+    *(
+        f"{s}_{j}_joint"
+        for s in ("left", "right")
+        for j in ("shoulder_pitch", "shoulder_roll", "shoulder_yaw", "elbow")
+    ),
 ]
 # assets/unitree.py init_state.
 DEFAULT_POS = {
@@ -101,7 +124,9 @@ def robot_spec() -> mujoco.MjSpec:
     return spec
 
 
-def _actuator(joints: tuple[str, ...], kp: float, kd: float, effort: float, armature: float) -> BuiltinPositionActuatorCfg:
+def _actuator(
+    joints: tuple[str, ...], kp: float, kd: float, effort: float, armature: float
+) -> BuiltinPositionActuatorCfg:
     return BuiltinPositionActuatorCfg(
         target_names_expr=joints, stiffness=kp, damping=kd, effort_limit=effort, armature=armature
     )
@@ -185,8 +210,14 @@ def base_lin_vel(env) -> torch.Tensor:  # Isaac Lab 2.x root_lin_vel_b is the CO
 
 
 def env_cfg(
-    spawn: tuple[float, float], yaw: float, goal: tuple[float, float], episode_s: float = 20.0, num_envs: int = 1,
-    jitter: bool = False, push: float = 0.0, friction: float = 1.0,
+    spawn: tuple[float, float],
+    yaw: float,
+    goal: tuple[float, float],
+    episode_s: float = 20.0,
+    num_envs: int = 1,
+    jitter: bool = False,
+    push: float = 0.0,
+    friction: float = 1.0,
 ) -> ManagerBasedRlEnvCfg:
     """`jitter` randomizes the reset; `push` (m/s) kicks the base every 3-5 s; `friction` is the feet's."""
     joints = SceneEntityCfg("robot", joint_names=tuple(MODEL_JOINTS))
@@ -235,7 +266,10 @@ def env_cfg(
         },
         actions={
             "joint_pos": JointPositionActionCfg(
-                entity_name="robot", actuator_names=tuple(MODEL_JOINTS), scale=0.25, use_default_offset=True,
+                entity_name="robot",
+                actuator_names=tuple(MODEL_JOINTS),
+                scale=0.25,
+                use_default_offset=True,
             )
         },
         events={
@@ -249,12 +283,18 @@ def env_cfg(
                 mode="reset",
                 params={"position_range": (-0.1, 0.1) if jitter else (0.0, 0.0), "velocity_range": (0.0, 0.0)},
             ),
-            **({"push": EventTermCfg(
-                func=mdp.push_by_setting_velocity,
-                mode="interval",
-                interval_range_s=(3.0, 5.0),
-                params={"velocity_range": {"x": (-push, push), "y": (-push, push)}},
-            )} if push else {}),
+            **(
+                {
+                    "push": EventTermCfg(
+                        func=mdp.push_by_setting_velocity,
+                        mode="interval",
+                        interval_range_s=(3.0, 5.0),
+                        params={"velocity_range": {"x": (-push, push), "y": (-push, push)}},
+                    )
+                }
+                if push
+                else {}
+            ),
         },
         terminations={
             "time_out": TerminationTermCfg(func=vel_mdp.time_out, time_out=True),
@@ -291,8 +331,11 @@ def course_spec() -> mujoco.MjSpec:
         length = STAIRS_PLATFORM if i == STAIRS_N - 1 else STAIRS_TREAD
         x = STAIRS_X0 + i * STAIRS_TREAD + (STAIRS_PLATFORM - STAIRS_TREAD) * (i >= STAIRS_N) + length / 2
         root.add_geom(
-            name=f"wide_stairs_{i}", type=mujoco.mjtGeom.mjGEOM_BOX, material="steel",
-            size=[length / 2, 1.5, level * STAIRS_STEP / 2], pos=[x, 0.0, level * STAIRS_STEP / 2],
+            name=f"wide_stairs_{i}",
+            type=mujoco.mjtGeom.mjGEOM_BOX,
+            material="steel",
+            size=[length / 2, 1.5, level * STAIRS_STEP / 2],
+            pos=[x, 0.0, level * STAIRS_STEP / 2],
         )
     return spec
 
@@ -339,7 +382,11 @@ class _Actor(nn.Module):
         self.output_mlp = _mlp(288, 23)
         to_policy = torch.tensor([MODEL_JOINTS.index(j) for j in POLICY_JOINTS])
         # obs: 9 base, joint_pos, joint_vel, actions (t-1, t), goal (4), map. Prop wants a_{t-1}.
-        self.register_buffer("prop_idx", torch.cat([torch.arange(9), 9 + to_policy, 32 + to_policy, 55 + to_policy, torch.arange(101, 105)]), persistent=False)
+        self.register_buffer(
+            "prop_idx",
+            torch.cat([torch.arange(9), 9 + to_policy, 32 + to_policy, 55 + to_policy, torch.arange(101, 105)]),
+            persistent=False,
+        )
         self.register_buffer("act_idx", torch.tensor([POLICY_JOINTS.index(j) for j in MODEL_JOINTS]), persistent=False)
 
     def forward(self, obs: torch.Tensor, height_map: torch.Tensor) -> torch.Tensor:
@@ -398,7 +445,12 @@ def export_onnx(checkpoint: Path = CHECKPOINT) -> onnx.ModelProto:
 
     buf = io.BytesIO()
     torch.onnx.export(
-        actor(checkpoint), (torch.zeros(1, OBS_DIM), torch.zeros(1, MAP_DIM)), buf, input_names=["obs", "map"],
-        output_names=["actions"], dynamic_axes={k: {0: "batch"} for k in ("obs", "map", "actions")}, dynamo=False,
+        actor(checkpoint),
+        (torch.zeros(1, OBS_DIM), torch.zeros(1, MAP_DIM)),
+        buf,
+        input_names=["obs", "map"],
+        output_names=["actions"],
+        dynamic_axes={k: {0: "batch"} for k in ("obs", "map", "actions")},
+        dynamo=False,
     )
     return onnx.load_from_string(buf.getvalue())

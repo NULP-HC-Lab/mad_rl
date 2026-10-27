@@ -15,10 +15,9 @@ import argparse
 from pathlib import Path
 
 import mediapy
+import task
 import torch
 from mjlab.envs import ManagerBasedRlEnv
-
-import task
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--seconds", type=float, default=20.0)
@@ -36,7 +35,14 @@ failed = False
 
 for name in args.station or task.STATIONS:
     station = task.STATIONS[name]
-    cfg = task.env_cfg(**station, episode_s=args.seconds + 1.0, num_envs=args.trials, jitter=True, push=args.push, friction=args.friction)
+    cfg = task.env_cfg(
+        **station,
+        episode_s=args.seconds + 1.0,
+        num_envs=args.trials,
+        jitter=True,
+        push=args.push,
+        friction=args.friction,
+    )
     env = ManagerBasedRlEnv(cfg, device=device, render_mode="rgb_array")
     obs, _ = env.reset()
     robot = env.scene["robot"]
@@ -63,9 +69,11 @@ for name in args.station or task.STATIONS:
                 frames.append(env.render())
     dist = torch.linalg.norm(robot.data.root_link_pos_w[:, :2] - env.scene.env_origins[:, :2] - goal, dim=-1)
     reached = (dist < 0.5) & ~fell
-    print(f"{name:18s} falls {int(fell.sum())}/{args.trials}  reached goal {int(reached.sum())}/{args.trials}  "
-          f"pelvis rise min/max {float(rise.min()):+.2f}/{float(rise.max()):+.2f} m  "
-          f"film run: fell={bool(fell[0])} dist={float(dist[0]):.2f} m rise={float(rise[0]):+.2f} m")
+    print(
+        f"{name:18s} falls {int(fell.sum())}/{args.trials}  reached goal {int(reached.sum())}/{args.trials}  "
+        f"pelvis rise min/max {float(rise.min()):+.2f}/{float(rise.max()):+.2f} m  "
+        f"film run: fell={bool(fell[0])} dist={float(dist[0]):.2f} m rise={float(rise[0]):+.2f} m"
+    )
     failed |= int(reached.sum()) < 0.9 * args.trials
     mediapy.write_video(args.out / f"{name.lower().replace(' ', '_')}.mp4", frames, fps=25)
     env.close()

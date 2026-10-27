@@ -17,16 +17,19 @@ import importlib.util
 import os
 import subprocess
 import time
-from pathlib import Path
 
+import task
 import torch
 from mjlab.entity import EntityCfg
 from mjlab.envs import ManagerBasedRlEnv
 
-import task
-
 BLIND_REV = "bd1ed17"  # feat: mjswan policy with stairs
-CONDITIONS = {"nominal": {}, "push 1.0 m/s": dict(push=1.0), "push 1.5 m/s": dict(push=1.5), "foot μ 0.5": dict(friction=0.5)}
+CONDITIONS = {
+    "nominal": {},
+    "push 1.0 m/s": dict(push=1.0),
+    "push 1.5 m/s": dict(push=1.5),
+    "foot μ 0.5": dict(friction=0.5),
+}
 
 
 def blind_task():
@@ -34,10 +37,16 @@ def blind_task():
     cache = task.CHECKPOINT.parent
     ckpt = cache / f"blind_{BLIND_REV}.pt"
     if not ckpt.exists():
-        pointer = subprocess.run(["git", "show", f"{BLIND_REV}:2026-03-21_12-27-55__blind/policy.pt"], capture_output=True, check=True).stdout
-        ckpt.write_bytes(subprocess.run(["git", "lfs", "smudge"], input=pointer, capture_output=True, check=True).stdout)
+        pointer = subprocess.run(
+            ["git", "show", f"{BLIND_REV}:2026-03-21_12-27-55__blind/policy.pt"], capture_output=True, check=True
+        ).stdout
+        ckpt.write_bytes(
+            subprocess.run(["git", "lfs", "smudge"], input=pointer, capture_output=True, check=True).stdout
+        )
     src = cache / f"blind_task_{BLIND_REV}.py"
-    src.write_bytes(subprocess.run(["git", "show", f"{BLIND_REV}:scripts/mjswan/task.py"], capture_output=True, check=True).stdout)
+    src.write_bytes(
+        subprocess.run(["git", "show", f"{BLIND_REV}:scripts/mjswan/task.py"], capture_output=True, check=True).stdout
+    )
     os.environ["MAD_RL_CHECKPOINT"] = str(ckpt)
     spec = importlib.util.spec_from_file_location("blind_task", src)
     mod = importlib.util.module_from_spec(spec)
@@ -93,7 +102,8 @@ def main() -> None:
             for label, policy in policies.items():
                 cfg = (
                     task.env_cfg(**station, episode_s=args.seconds + 1.0, num_envs=args.trials, jitter=True, **kw)
-                    if label.startswith("AME") else blind_cfg(old, station, args.trials, args.seconds + 1.0, **kw)
+                    if label.startswith("AME")
+                    else blind_cfg(old, station, args.trials, args.seconds + 1.0, **kw)
                 )
                 t0 = time.time()
                 crossed, fell, t = run(cfg, policy, station, args.seconds, device)
@@ -102,7 +112,10 @@ def main() -> None:
                 print(f"  {name} / {cond} / {label}: {cells[-1]} ({time.time() - t0:.0f} s)", flush=True)
             rows.append(f"| {name} | {cond} | " + " | ".join(cells) + " |")
 
-    print(f"\n{args.trials} jittered trials of {args.seconds:g} s: crossed the goal line / falls / median time to cross.\n")
+    print(
+        f"\n{args.trials} jittered trials of {args.seconds:g} s: crossed the goal line / falls / median time to"
+        " cross.\n"
+    )
     print("| Scene | Condition | " + " | ".join(policies) + " |\n|---|---|" + "---|" * len(policies))
     print("\n".join(rows))
 

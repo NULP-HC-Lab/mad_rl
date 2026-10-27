@@ -98,6 +98,7 @@ jobs:
           git fetch --depth=1 origin "$BASE_SHA"
           git worktree add "$RUNNER_TEMP/base" "$BASE_SHA"
           {
+            echo "<!-- mjswan-stats -->"  # this job edits only the comment carrying this marker
             echo "### mjswan policy: 32 jittered trials per scene, 16 per perturbation"
             echo
             echo "C MuJoCo on the built browser scenes, as the browser runs them. Not blocking."
@@ -149,4 +150,12 @@ jobs:
             done
           } > media.md
           cat media.md >> comment.md
-      - run: gh pr comment "$PR" --edit-last --create-if-none --body-file comment.md
+      # Not `gh pr comment --edit-last`: other workflows (claude review) post as the same bot.
+      - run: |
+          id=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --paginate \
+            --jq '.[] | select(.body | startswith("<!-- mjswan-stats -->")) | .id' | tail -1)
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -F body=@comment.md >/dev/null
+          else
+            gh pr comment "$PR" --body-file comment.md
+          fi

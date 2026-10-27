@@ -51,8 +51,9 @@ Bump the `isaaclab` pin in `pixi.toml` and replace the
 `scripts/mjswan/` runs ETH's AME-2 G1 teacher
 ([leggedrobotics/ame2_minimal](https://github.com/leggedrobotics/ame2_minimal),
 `modelzoo/g1_gaze_64000env_10h/model_2400.pt`, GPL-3.0) in MuJoCo on the lab course
-(12 cm stairs, ramp, brick road) plus wide 20 cm stairs, and builds it into a static browser
-app with [mjswan](https://mjswan.readthedocs.io). Needs `uv`, nothing from pixi:
+(12 cm stairs, ramp, brick road) plus wide 20 cm stairs, and a free walk: drag the orange flag
+(mouse, the default Pull mode) and the robot turns and walks to it anywhere on the course. It
+builds all of it into a static browser app with [mjswan](https://mjswan.readthedocs.io). Needs `uv`, nothing from pixi:
 
 ```bash
 uv run scripts/mjswan/rollout.py            # 32 jittered trials per station + videos in scripts/mjswan/videos (GPU)
@@ -72,7 +73,8 @@ so nothing here needs mad_assets except `bake_course.py`.
 
 The checkpoint is downloaded once (83 MB, pinned commit) into `scripts/mjswan/.cache/`;
 `MAD_RL_CHECKPOINT` points elsewhere. The policy is goal-reaching: each scene has a fixed goal
-past its obstacle. `task.py` mirrors the authors' Isaac Lab 2.3 cfgs by hand (23-DoF G1 with
+past its obstacle, except the free walk, whose goal is the flag (a body on x/y/z slides, so a pull
+cannot tip it; no time limit). `task.py` mirrors the authors' Isaac Lab 2.3 cfgs by hand (23-DoF G1 with
 welded wrists, their gains, 26 x 15 xyz height map) and transcribes their `AME2GazeModel`;
 its output was checked against the original class.
 
@@ -86,6 +88,12 @@ changes the actions, every scene reaches its goal in at least 3 of 4 seeded tria
 upgrade, not gait. `check.py` reads the rays, rest pose and action scale from the built manifest,
 so a build that drops one fails there. Ready PRs also get a non-blocking comment with 32-trial
 success rates for the PR and its base, plus the PR's `--sweep` table.
+
+`.github/workflows/mjswan-course.yml` keeps `course.xml` in sync with mad_assets: hourly, for a
+mad_assets commit no run has handled yet (the LFS pull is 356 MB), it runs `bake_course.py`; if
+the geometry changed, it runs `check.py` on the re-baked course and opens a PR with the table.
+That PR starts no workflows of its own (GITHUB_TOKEN); push to it or reopen it for the full CI.
+Run it by hand from the Actions tab to re-check the current commit.
 
 The input check exists because the previous checkpoint was trained with its height scan scaled
 by 0: shuffling its 55 scan inputs changes its actions by exactly 0. `compare.py` runs in

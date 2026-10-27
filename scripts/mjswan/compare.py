@@ -102,6 +102,8 @@ def main() -> None:
 
     rows = []
     for name, station in task.STATIONS.items():
+        if station.get("free"):  # the blind policy takes a velocity, not a goal
+            continue
         for cond, kw in CONDITIONS.items():
             cells = []
             for label, policy in policies.items():

@@ -190,19 +190,48 @@ def height_map(env, sensor_name: str) -> torch.Tensor:
     return torch.cat([xy, z.unsqueeze(-1)], -1).flatten(1)
 
 
-def goal_command(env, goal: tuple[float, float, float]) -> torch.Tensor:
-    """`ame2_commands_obs` of a fixed world goal (x, y, heading): [x_b, y_b, sin dyaw, cos dyaw].
+def _goal_obs(env, goal_xy: torch.Tensor, heading: float | None) -> torch.Tensor:
+    """`ame2_commands_obs`: [x_b, y_b, sin dyaw, cos dyaw] of a world goal, clipped to 2 m.
 
-    The goal is clipped to 2 m. Isaac then randomizes dyaw (the true one is in distribution).
+    Isaac randomizes dyaw (the true one is in distribution). `heading=None` faces the goal,
+    then keeps the current heading within 0.5 m of it.
     """
     data = env.scene["robot"].data
     yaw = data.heading_w
-    d = torch.tensor(goal[:2], device=yaw.device) - data.root_link_pos_w[:, :2]
+    d = goal_xy.to(yaw.device) - data.root_link_pos_w[:, :2]
     c, s = torch.cos(yaw), torch.sin(yaw)
     p = torch.stack([c * d[:, 0] + s * d[:, 1], c * d[:, 1] - s * d[:, 0]], -1)
+    # `where`, not a mask product: the exported atan2 is NaN at the goal itself.
+    dyaw = (
+        heading - yaw if heading is not None else torch.where(p.norm(dim=-1) > 0.5, torch.atan2(p[:, 1], p[:, 0]), 0.0)
+    )
     p = p * (GOAL_CLIP / p.norm(dim=-1, keepdim=True).clamp(min=GOAL_CLIP))
-    dyaw = goal[2] - yaw
     return torch.cat([p, torch.sin(dyaw).unsqueeze(-1), torch.cos(dyaw).unsqueeze(-1)], -1)
+
+
+def goal_command(env, goal: tuple[float, float, float]) -> torch.Tensor:
+    """A fixed world goal (x, y, heading)."""
+    return _goal_obs(env, torch.tensor(goal[:2]), goal[2])
+
+
+def goal_marker(env) -> torch.Tensor:
+    """The `goal` entity's position, facing it: in the browser, drag the marker to steer."""
+    # The entity's last body is the flag; mjlab wraps a fixed-base entity in a mocap root.
+    return _goal_obs(env, env.scene["goal"].data.body_link_pos_w[:, -1, :2], None)
+
+
+def marker_spec() -> mujoco.MjSpec:
+    """A floating flag the browser can grab: no collisions, not in the height map (group 2)."""
+    spec = mujoco.MjSpec()
+    body = spec.worldbody.add_body(name="goal", gravcomp=1.0)
+    for axis in ("x", "y", "z"):  # slides, no rotation: a pull at the ball cannot tip it over
+        body.add_joint(
+            name=axis, type=mujoco.mjtJoint.mjJNT_SLIDE, axis=[axis == a for a in "xyz"], damping=[2.0, 0, 0]
+        )
+    look = dict(contype=0, conaffinity=0, group=2, rgba=[1.0, 0.45, 0.0, 1.0])
+    body.add_geom(type=mujoco.mjtGeom.mjGEOM_CYLINDER, size=[0.015, 0.45, 0], pos=[0, 0, 0.45], mass=0.05, **look)
+    body.add_geom(type=mujoco.mjtGeom.mjGEOM_SPHERE, size=[0.12, 0, 0], pos=[0, 0, 0.9], mass=0.25, **look)
+    return spec
 
 
 def base_lin_vel(env) -> torch.Tensor:  # Isaac Lab 2.x root_lin_vel_b is the COM's
@@ -218,8 +247,13 @@ def env_cfg(
     jitter: bool = False,
     push: float = 0.0,
     friction: float = 1.0,
+    free: bool = False,
 ) -> ManagerBasedRlEnvCfg:
-    """`jitter` randomizes the reset; `push` (m/s) kicks the base every 3-5 s; `friction` is the feet's."""
+    """`jitter` randomizes the reset; `push` (m/s) kicks the base every 3-5 s; `friction` is the feet's.
+
+    `free` puts a draggable marker at `goal` and walks to wherever it is (the heading faces it), with
+    no time limit.
+    """
     joints = SceneEntityCfg("robot", joint_names=tuple(MODEL_JOINTS))
     terrain_scan = RayCastSensorCfg(
         name="terrain_scan",
@@ -241,14 +275,26 @@ def env_cfg(
         # last_action. The browser serves only the current action, so keep two and let
         # the actor read the older one.
         "actions": ObservationTermCfg(func=mdp.last_action, history_length=2),
-        "pose_commands": ObservationTermCfg(func=goal_command, params={"goal": (*goal, yaw)}),
+        "pose_commands": (
+            ObservationTermCfg(func=goal_marker)
+            if free
+            else ObservationTermCfg(func=goal_command, params={"goal": (*goal, yaw)})
+        ),
     }
     reset_pose = {"x": (-0.2, 0.2), "y": (-0.2, 0.2), "yaw": (-0.3, 0.3)} if jitter else {}
     reset_vel = {k: (-0.3, 0.3) for k in ("x", "y", "z", "roll", "pitch", "yaw")} if jitter else {}
     return ManagerBasedRlEnvCfg(
         scene=SceneCfg(
             terrain=TerrainEntityCfg(terrain_type="plane"),
-            entities={"robot": robot_cfg(spawn, yaw, friction), "course": EntityCfg(spec_fn=course_spec)},
+            entities={
+                "robot": robot_cfg(spawn, yaw, friction),
+                "course": EntityCfg(spec_fn=course_spec),
+                **(
+                    {"goal": EntityCfg(init_state=EntityCfg.InitialStateCfg(pos=(*goal, 0.0)), spec_fn=marker_spec)}
+                    if free
+                    else {}
+                ),
+            },
             sensors=(terrain_scan,),
             num_envs=num_envs,
             env_spacing=0.0,  # the course is static geometry at world coordinates
@@ -317,7 +363,7 @@ def env_cfg(
             mujoco=MujocoCfg(timestep=0.005, iterations=10, ls_iterations=20),
         ),
         decimation=4,
-        episode_length_s=episode_s,
+        episode_length_s=1e9 if free else episode_s,
     )
 
 
@@ -351,6 +397,8 @@ STATIONS = {
     "Lab ramp": dict(spawn=(-2.0, -1.8), yaw=-math.pi / 2, goal=(-2.0, -6.2)),
     "Brick road": dict(spawn=(-1.0, 0.0), yaw=0.0, goal=(7.0, 0.0)),
     "Wide stairs 20 cm": dict(spawn=(-10.5, 0.0), yaw=0.0, goal=(-4.0, 0.0)),
+    # The marker starts past the brick road; drag it anywhere on the course.
+    "Free walk: drag the flag": dict(spawn=(-3.0, 0.0), yaw=0.0, goal=(7.0, 0.0), free=True),
 }
 
 

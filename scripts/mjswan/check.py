@@ -136,6 +136,9 @@ def trial(
             return last_action[None]
         if "sensor" in sl:  # TypeError/KeyError: mjswan sent no raycast descriptor for this group
             return rays(group["sensors"][sl["sensor"]])[sl["field"]]
+        if sl["entity"] != "robot":  # the free-walk flag: its bodies' positions
+            assert sl["field"] == "body_link_pos_w", sl
+            return d.xpos[[b for b in range(m.nbody) if m.body(b).name.startswith(f"{sl['entity']}/")]]
         R, p, w_b = d.xmat[root].reshape(3, 3), d.xpos[root], d.qvel[3:6]
         v_com_w = d.qvel[:3] + np.cross(R @ w_b, d.xipos[root] - p)
         return {

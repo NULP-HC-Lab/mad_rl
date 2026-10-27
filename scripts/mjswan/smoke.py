@@ -1,6 +1,8 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = ["playwright==1.55.0"]
+# [tool.uv]
+# exclude-newer = "2026-10-27T00:00:00Z"  # reproducible resolution; bump deliberately
 # ///
 """Open every scene of the built app in headless Chromium: it must load and run without errors.
 

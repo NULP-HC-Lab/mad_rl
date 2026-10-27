@@ -1,6 +1,8 @@
 # /// script
 # requires-python = ">=3.12,<3.13"
 # dependencies = ["mjswan[examples]==0.11.6"]
+# [tool.uv]
+# exclude-newer = "2026-10-27T00:00:00Z"  # reproducible resolution; bump deliberately
 # ///
 """AME-2 against the previous, local policy (blind, 12 leg joints, walks straight at 0.6 m/s), in mjlab.
 

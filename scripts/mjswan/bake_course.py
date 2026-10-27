@@ -1,6 +1,8 @@
 # /// script
 # requires-python = ">=3.12,<3.13"
 # dependencies = ["mujoco==3.11.0", "numpy", "scipy", "usd-core==26.8"]
+# [tool.uv]
+# exclude-newer = "2026-10-27T00:00:00Z"  # reproducible resolution; bump deliberately
 # ///
 """Convert the lab course's collision prims (mad_assets `scenes/default.usd`) into `course.xml`.
 

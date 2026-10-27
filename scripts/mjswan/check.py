@@ -1,6 +1,8 @@
 # /// script
 # requires-python = ">=3.12,<3.13"
 # dependencies = ["mjswan[examples]==0.11.6"]
+# [tool.uv]
+# exclude-newer = "2026-10-27T00:00:00Z"  # reproducible resolution; bump deliberately
 # [tool.uv.sources]
 # torch = { index = "pytorch-cpu" }
 # [[tool.uv.index]]

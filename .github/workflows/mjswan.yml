@@ -1,6 +1,7 @@
 # The mjswan browser demo: build it, run the policy the way the browser does, load it in Chromium.
 # All on CPU (scripts/mjswan/check.py, smoke.py). Ready PRs also get a non-blocking comment with
-# 32-trial success rates of the PR and its base, plus the PR under pushes and slippery feet (16 each).
+# 32-trial success rates of the PR and its base, the PR under pushes and slippery feet (16 each),
+# and GIFs of the PR's scenes in the browser.
 name: mjswan policy
 
 on:
@@ -69,7 +70,7 @@ jobs:
     timeout-minutes: 60
     continue-on-error: true
     permissions:
-      contents: read
+      contents: write  # the GIFs go to the ci-media branch
       pull-requests: write
     env:
       BASE_SHA: ${{ github.event.pull_request.base.sha }}
@@ -110,4 +111,42 @@ jobs:
             evaluate "$RUNNER_TEMP/base"
           } > comment.md
           cat comment.md >> "$GITHUB_STEP_SUMMARY"
+      # GitHub has no API for comment attachments, so the GIFs live on the `ci-media` branch: one
+      # parentless commit holding the latest GIFs of each PR, so its history never grows.
+      # ponytail: two PRs finishing at once can drop each other's folder; the next run restores it.
+      - name: Record the PR's scenes
+        continue-on-error: true
+        run: |
+          uv run --with playwright==1.55.0 playwright install --with-deps chromium >&2
+          command -v ffmpeg >/dev/null || sudo apt-get install -y -qq ffmpeg >&2
+          uv run scripts/mjswan/smoke.py --out "$RUNNER_TEMP/shots" --video "$RUNNER_TEMP/videos" >&2
+          media="$RUNNER_TEMP/media"
+          if git fetch -q --depth=1 origin ci-media; then
+            git worktree add -q --detach "$media" FETCH_HEAD
+          else
+            git worktree add -q --orphan -b ci-media "$media"
+          fi
+          rm -rf "$media/pr-$PR" && mkdir -p "$media/pr-$PR"
+          for v in "$RUNNER_TEMP"/videos/*.webm; do
+            ffmpeg -v error -i "$v" -loop 0 \
+              -vf "fps=6,scale=360:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=64[p];[b][p]paletteuse=dither=bayer" \
+              "$media/pr-$PR/$(basename "$v" .webm).gif"
+          done
+          git -C "$media" add -A
+          sha=$(git -C "$media" -c user.name="github-actions[bot]" \
+            -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit-tree "$(git -C "$media" write-tree)" -m "CI media: the latest GIFs of each PR")
+          git push -q -f origin "$sha:refs/heads/ci-media"
+          {
+            echo
+            echo "**This PR in the browser** (headless Chromium, ${HEAD_SHA::7})"
+            echo
+            echo "| Scene | |"
+            echo "|---|---|"
+            for g in "$media/pr-$PR"/*.gif; do
+              n=$(basename "$g" .gif)
+              echo "| $n | <img src=\"https://raw.githubusercontent.com/$GITHUB_REPOSITORY/$sha/pr-$PR/$n.gif\" width=\"360\"> |"
+            done
+          } > media.md
+          cat media.md >> comment.md
       - run: gh pr comment "$PR" --edit-last --create-if-none --body-file comment.md

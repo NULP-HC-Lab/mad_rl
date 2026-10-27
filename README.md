@@ -48,7 +48,17 @@ Bump the `isaaclab` pin in `pixi.toml` and replace the
 
 ## Docker
 
-`Dockerfile` / `compose.yaml` predate Isaac Lab 3.0 and are not updated yet.
+Needs the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html).
+The image bakes in the pixi env (~41GB); `../mad_assets/models` is mounted at runtime.
+
+```bash
+cp .env.base .env                                 # compose reads it
+docker compose build
+docker compose up -d
+docker compose exec rl pixi run train --task Mad-Rl-Rough-v0  # any task from Quick start
+docker compose cp rl:/workspace/logs/. logs/      # logs live in the container
+docker compose down
+```
 
 ## Code formatting
 

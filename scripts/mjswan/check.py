@@ -18,8 +18,10 @@
    rest pose, action scale and the fall angle come from the manifest, as in the browser, so a
    build that drops any of them fails here. Trial 0 starts at the spawn, the rest are jittered
    (seeded, ranges from `task.env_cfg(jitter=True)`).
+3. With --sweep, the same trials again under pushes and slippery feet (`task.env_cfg(push=,
+   friction=)`). Informational: only the unperturbed trials are gated.
 
-Prints a markdown table; exits 1 if a scene reaches its goal in under 75 % of trials.
+Prints markdown tables; exits 1 if a scene reaches its goal in under 75 % of unperturbed trials.
 """
 
 import argparse
@@ -27,9 +29,14 @@ import json
 import math
 import multiprocessing
 import os
+import re
 import zipfile
 from functools import cache
 from pathlib import Path
+
+# No rendering here. Else `import task` (mjlab) sets MUJOCO_GL=egl, the spawned workers inherit
+# it and die importing mujoco on machines without EGL (CI runners), and the pool respawns forever.
+os.environ.setdefault("MUJOCO_GL", "disable")
 
 import mujoco
 import numpy as np
@@ -39,6 +46,10 @@ import torch
 import task
 
 MIN_RATE = 0.75
+SWEEP = {  # 2 m/s already topples a quarter of the trials
+    **{f"push {p} m/s": dict(push=p) for p in (1.0, 1.5, 2.0)},
+    **{f"foot μ {f}": dict(friction=f) for f in (0.5, 0.3)},
+}
 
 
 @cache
@@ -48,21 +59,26 @@ def _session(path: str) -> ort.InferenceSession:
     return ort.InferenceSession(path, opts)
 
 
-@cache
-def _model(mjz: str) -> mujoco.MjModel:
+@cache  # one model per friction: a worker's trials share it
+def _model(mjz: str, friction: float | None = None) -> mujoco.MjModel:
     with zipfile.ZipFile(mjz) as z:
         files = {n: z.read(n) for n in z.namelist()}
     xml = next(n for n in files if n.endswith(".xml"))
-    return mujoco.MjModel.from_xml_string(files[xml].decode(), files)
+    m = mujoco.MjModel.from_xml_string(files[xml].decode(), files)
+    if friction is not None:
+        feet = [g for g in range(m.ngeom) if re.fullmatch(r"robot/(left|right)_foot\d_collision", m.geom(g).name)]
+        assert len(feet) == 14
+        m.geom_friction[feet, 0] = friction
+    return m
 
 
 def _yaw_quat(yaw: float) -> np.ndarray:
     return np.array([math.cos(yaw / 2), 0.0, 0.0, math.sin(yaw / 2)])
 
 
-def trial(scene_dir: str, scene: dict, seconds: float, seed: int) -> tuple[bool, float]:
+def trial(scene_dir: str, scene: dict, seconds: float, seed: int, push: float = 0.0, friction: float | None = None) -> tuple[bool, float]:
     """One episode; returns (fell, distance from the goal at the end)."""
-    m = _model(f"{scene_dir}/{scene['scene']}")
+    m = _model(f"{scene_dir}/{scene['scene']}", friction)
     d = mujoco.MjData(m)
     mujoco.mj_resetDataKeyframe(m, d, 0)
     pol = scene["policies"][0]
@@ -72,10 +88,10 @@ def trial(scene_dir: str, scene: dict, seconds: float, seed: int) -> tuple[bool,
     joints = [j for j in range(m.njnt) if m.jnt_type[j] != mujoco.mjtJoint.mjJNT_FREE and m.joint(j).name.startswith("robot/")]
     qadr, vadr = m.jnt_qposadr[joints], m.jnt_dofadr[joints]
 
+    events = task.env_cfg(**station, jitter=True, push=push).events
+    rng = np.random.default_rng(seed)
     if seed:  # the jittered resets of rollout.py
-        events = task.env_cfg(**station, jitter=True).events
         pose, vel = events["reset_base"].params["pose_range"], events["reset_base"].params["velocity_range"]
-        rng = np.random.default_rng(seed)
         d.qpos[:2] += rng.uniform(*zip(pose["x"], pose["y"]))
         quat = np.empty(4)
         mujoco.mju_mulQuat(quat, _yaw_quat(rng.uniform(*pose["yaw"])), d.qpos[3:7])
@@ -143,6 +159,8 @@ def trial(scene_dir: str, scene: dict, seconds: float, seed: int) -> tuple[bool,
 
     policy = _session(f"{scene_dir}/{pol['onnx']}")
     goal = np.array(station["goal"])
+    if kick := events.get("push"):  # mjlab's interval event: after the physics steps, per-env timer
+        kick_vel, kick_in = kick.params["velocity_range"], rng.uniform(*kick.interval_range_s)
     for _ in range(int(seconds / scene["control_dt"])):
         obs = {k: observe(mdp["observations"][k]) for k in pol["in_keys"]}
         last_action = policy.run(None, {i.name: obs[k] for i, k in zip(policy.get_inputs(), pol["in_keys"])})[0][0]
@@ -151,6 +169,9 @@ def trial(scene_dir: str, scene: dict, seconds: float, seed: int) -> tuple[bool,
             mujoco.mj_step(m, d)
         if math.acos(np.clip(d.xmat[root][8], -1, 1)) > limit:  # bad_orientation
             return True, float(np.linalg.norm(d.xpos[root][:2] - goal))
+        if kick and (kick_in := kick_in - scene["control_dt"]) < 1e-6:
+            d.qvel[:2] += rng.uniform(*zip(kick_vel["x"], kick_vel["y"]))  # free joint: world-frame root velocity
+            kick_in = rng.uniform(*kick.interval_range_s)
     return False, float(np.linalg.norm(d.xpos[root][:2] - goal))
 
 
@@ -170,6 +191,7 @@ def main() -> None:
     parser.add_argument("--dist", type=Path, default=Path(__file__).parent / "dist")
     parser.add_argument("--trials", type=int, default=4)
     parser.add_argument("--seconds", type=float, default=20.0)
+    parser.add_argument("--sweep", action="store_true", help="also run the perturbed trials")
     args = parser.parse_args()
 
     diff = check_parity(args.dist)
@@ -177,18 +199,30 @@ def main() -> None:
     failed = diff > 1e-4
     project = json.loads((args.dist / "manifest.json").read_text())["projects"][0]
     scenes = project["scenes"]
-    jobs = [(str(args.dist / project["id"] / s["id"]), s, args.seconds, seed) for s in scenes for seed in range(args.trials)]
+    conditions = [{}, *SWEEP.values()] if args.sweep else [{}]
+    jobs = [
+        (str(args.dist / project["id"] / s["id"]), s, args.seconds, seed, c.get("push", 0.0), c.get("friction"))
+        for c in conditions for s in scenes for seed in range(args.trials)
+    ]
     with multiprocessing.get_context("spawn").Pool(len(os.sched_getaffinity(0))) as pool:
         results = pool.starmap(trial, jobs, chunksize=1)
+
+    def score(c: int, i: int) -> tuple[int, int]:  # (reached, falls) of condition c, scene i
+        res = results[(c * len(scenes) + i) * args.trials :][: args.trials]
+        return sum(not fell and dist < 0.5 for fell, dist in res), sum(fell for fell, _ in res)
 
     print(f"{args.trials} trials of {args.seconds:g} s per scene, trial 0 at the spawn:\n")
     print("| Scene | Reached goal | Falls |\n|---|---|---|")
     for i, s in enumerate(scenes):
-        res = results[i * args.trials : (i + 1) * args.trials]
-        reached = sum(not fell and dist < 0.5 for fell, dist in res)
-        falls = sum(fell for fell, _ in res)
+        reached, falls = score(0, i)
         print(f"| {s['name']} | {reached}/{args.trials} | {falls} |")
         failed |= reached < MIN_RATE * args.trials
+    if args.sweep:
+        print("\nRobustness, not gated: reached goal / falls. Pushes kick the base every 3-5 s by up to the")
+        print("given speed in x and y; foot μ replaces the feet's friction (nominal 1.0).\n")
+        print("| Scene | nominal | " + " | ".join(SWEEP) + " |\n|---|---|" + "---|" * len(SWEEP))
+        for i, s in enumerate(scenes):
+            print(f"| {s['name']} | " + " | ".join("%d / %d" % score(c, i) for c in range(len(conditions))) + " |")
     raise SystemExit(1 if failed else 0)
 
 

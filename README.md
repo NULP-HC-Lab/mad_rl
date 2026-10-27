@@ -58,6 +58,9 @@ app with [mjswan](https://mjswan.readthedocs.io). Needs `uv`, nothing from pixi:
 uv run scripts/mjswan/rollout.py            # 32 jittered trials per station + videos in scripts/mjswan/videos (GPU)
 uv run scripts/mjswan/build.py              # build scripts/mjswan/dist and serve on localhost:8080
 uv run scripts/mjswan/check.py              # CPU: the built app's policy and scenes, as the browser runs them
+uv run scripts/mjswan/check.py --sweep      # ... and under pushes (1-2 m/s) and slippery feet (μ 0.5, 0.3)
+uv run scripts/mjswan/rollout.py --push 1.5 --friction 0.5   # the same perturbations in mjlab, with videos
+uv run scripts/mjswan/compare.py            # AME-2 against the previous blind policy, same trials (GPU)
 uv run scripts/mjswan/smoke.py              # every scene loads and runs in headless Chromium
 uv run scripts/mjswan/build.py --publish    # upload to mjswan Cloud (GitHub sign-in)
 uv run scripts/mjswan/bake_course.py        # re-bake course.xml after the course changes in mad_assets
@@ -80,7 +83,7 @@ CI (`.github/workflows/mjswan.yml`, CPU only) runs on changes under `scripts/mjs
 least 3 of 4 seeded trials), then `smoke.py`. `smoke.py` catches a broken JS runtime or mjswan
 upgrade, not gait. `check.py` reads the rays, rest pose and action scale from the built manifest,
 so a build that drops one fails there. Ready PRs also get a non-blocking comment with 32-trial
-success rates for the PR and its base.
+success rates for the PR and its base, plus the PR's `--sweep` table.
 
 ## Docker
 

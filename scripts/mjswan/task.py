@@ -120,7 +120,7 @@ ACTUATORS = (
 )
 
 
-def robot_cfg(pos: tuple[float, float], yaw: float) -> EntityCfg:
+def robot_cfg(pos: tuple[float, float], yaw: float, friction: float = 1.0) -> EntityCfg:
     return EntityCfg(
         init_state=EntityCfg.InitialStateCfg(
             pos=(*pos, SPAWN_Z),
@@ -136,7 +136,7 @@ def robot_cfg(pos: tuple[float, float], yaw: float) -> EntityCfg:
                 conaffinity=1,
                 condim=FULL_COLLISION.condim,
                 priority=FULL_COLLISION.priority,
-                friction={r"^(left|right)_foot[1-7]_collision$": (1.0,)},
+                friction={r"^(left|right)_foot[1-7]_collision$": (friction,)},  # priority 1: the feet's wins
             ),
         ),
         spec_fn=robot_spec,
@@ -186,8 +186,9 @@ def base_lin_vel(env) -> torch.Tensor:  # Isaac Lab 2.x root_lin_vel_b is the CO
 
 def env_cfg(
     spawn: tuple[float, float], yaw: float, goal: tuple[float, float], episode_s: float = 20.0, num_envs: int = 1,
-    jitter: bool = False,
+    jitter: bool = False, push: float = 0.0, friction: float = 1.0,
 ) -> ManagerBasedRlEnvCfg:
+    """`jitter` randomizes the reset; `push` (m/s) kicks the base every 3-5 s; `friction` is the feet's."""
     joints = SceneEntityCfg("robot", joint_names=tuple(MODEL_JOINTS))
     terrain_scan = RayCastSensorCfg(
         name="terrain_scan",
@@ -216,7 +217,7 @@ def env_cfg(
     return ManagerBasedRlEnvCfg(
         scene=SceneCfg(
             terrain=TerrainEntityCfg(terrain_type="plane"),
-            entities={"robot": robot_cfg(spawn, yaw), "course": EntityCfg(spec_fn=course_spec)},
+            entities={"robot": robot_cfg(spawn, yaw, friction), "course": EntityCfg(spec_fn=course_spec)},
             sensors=(terrain_scan,),
             num_envs=num_envs,
             env_spacing=0.0,  # the course is static geometry at world coordinates
@@ -248,6 +249,12 @@ def env_cfg(
                 mode="reset",
                 params={"position_range": (-0.1, 0.1) if jitter else (0.0, 0.0), "velocity_range": (0.0, 0.0)},
             ),
+            **({"push": EventTermCfg(
+                func=mdp.push_by_setting_velocity,
+                mode="interval",
+                interval_range_s=(3.0, 5.0),
+                params={"velocity_range": {"x": (-push, push), "y": (-push, push)}},
+            )} if push else {}),
         },
         terminations={
             "time_out": TerminationTermCfg(func=vel_mdp.time_out, time_out=True),

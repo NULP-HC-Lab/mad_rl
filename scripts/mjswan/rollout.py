@@ -5,6 +5,7 @@
 """Headless check of the policy in mjlab on every lab station: falls, goals reached, one video each.
 
     uv run scripts/mjswan/rollout.py [--trials 32] [--seconds 20] [--out scripts/mjswan/videos]
+    uv run scripts/mjswan/rollout.py --push 1.5 --friction 0.5   # perturbed (task.env_cfg)
 
 Every trial but the filmed one (env 0) starts with a jittered pose, velocity and joints.
 Exits 1 if a station reaches its goal in under 90 % of trials.
@@ -24,6 +25,8 @@ parser.add_argument("--seconds", type=float, default=20.0)
 parser.add_argument("--trials", type=int, default=32)
 parser.add_argument("--out", type=Path, default=Path(__file__).parent / "videos")
 parser.add_argument("--station", action="append", help="default: all")
+parser.add_argument("--push", type=float, default=0.0, help="kick speed (m/s) every 3-5 s")
+parser.add_argument("--friction", type=float, default=1.0, help="the feet's friction")
 args = parser.parse_args()
 args.out.mkdir(parents=True, exist_ok=True)
 
@@ -33,7 +36,7 @@ failed = False
 
 for name in args.station or task.STATIONS:
     station = task.STATIONS[name]
-    cfg = task.env_cfg(**station, episode_s=args.seconds + 1.0, num_envs=args.trials, jitter=True)
+    cfg = task.env_cfg(**station, episode_s=args.seconds + 1.0, num_envs=args.trials, jitter=True, push=args.push, friction=args.friction)
     env = ManagerBasedRlEnv(cfg, device=device, render_mode="rgb_array")
     obs, _ = env.reset()
     robot = env.scene["robot"]

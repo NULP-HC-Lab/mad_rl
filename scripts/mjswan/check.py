@@ -13,7 +13,9 @@
     uv run scripts/mjswan/build.py --no-launch
     uv run scripts/mjswan/check.py [--trials 4] [--dist scripts/mjswan/dist]
 
-1. The policy ONNX in dist matches `task.actor()`.
+1. The policy ONNX in dist matches `task.actor()`, and reads every observation term: shuffling any
+   one of them (each actor term, the map) changes the actions. The old blind checkpoint, trained
+   with its height scan scaled by 0, fails this: its scan term changes nothing.
 2. Every scene runs in C MuJoCo from its scene.mjz with the per-term observation graphs. Rays,
    rest pose, action scale and the fall angle come from the manifest, as in the browser, so a
    build that drops any of them fails here. Trial 0 starts at the spawn, the rest are jittered
@@ -184,15 +186,31 @@ def trial(
     return False, float(np.linalg.norm(d.xpos[root][:2] - goal))
 
 
-def check_parity(dist: Path) -> float:
+def check_parity(dist: Path) -> tuple[float, dict[str, float]]:
+    """Max |ONNX - task.actor()|, and per observation term the max action change when it alone is shuffled."""
     project = json.loads((dist / "manifest.json").read_text())["projects"][0]
     scene = project["scenes"][0]
+    terms = next(x for x in scene["mdps"] if x["id"] == scene["policies"][0]["mdp"])["observations"]["actor"]
     onnx_path = dist / project["id"] / scene["id"] / scene["policies"][0]["onnx"]
     obs, height_map = torch.randn(64, task.OBS_DIM), torch.randn(64, task.MAP_DIM) * 0.5
     with torch.no_grad():
         want = task.actor()(obs, height_map).numpy()
-    got = _session(str(onnx_path)).run(None, {"obs": obs.numpy(), "map": height_map.numpy()})[0]
-    return float(np.abs(got - want).max())
+    sess, feeds = _session(str(onnx_path)), {"obs": obs.numpy(), "map": height_map.numpy()}
+    got = sess.run(None, feeds)[0]
+    rng = np.random.default_rng(0)  # shuffles across the batch: same distribution, other samples
+
+    def change(name: str, cols: slice) -> float:
+        x = feeds[name].copy()
+        x[:, cols] = rng.permutation(x[:, cols])
+        return float(np.abs(sess.run(None, {**feeds, name: x})[0] - got).max())
+
+    used, start = {}, 0
+    for t in terms:  # the actor group, concatenated in this order
+        n = t["size"] * t.get("history_length", 1)
+        used[t["name"]], start = change("obs", slice(start, start + n)), start + n
+    assert start == task.OBS_DIM, start
+    used["map"] = change("map", slice(None))
+    return float(np.abs(got - want).max()), used
 
 
 def main() -> None:
@@ -203,9 +221,10 @@ def main() -> None:
     parser.add_argument("--sweep", action="store_true", help="also run the perturbed trials")
     args = parser.parse_args()
 
-    diff = check_parity(args.dist)
-    print(f"policy ONNX vs task.actor(): max abs diff {diff:.1e}\n")
-    failed = diff > 1e-4
+    diff, used = check_parity(args.dist)
+    print(f"policy ONNX vs task.actor(): max abs diff {diff:.1e}")
+    print("max action change, one term shuffled: " + ", ".join(f"{k} {v:.2f}" for k, v in used.items()) + "\n")
+    failed = diff > 1e-4 or min(used.values()) < 1e-3  # a term the policy ignores
     project = json.loads((args.dist / "manifest.json").read_text())["projects"][0]
     scenes = project["scenes"]
     conditions = [{}, *SWEEP.values()] if args.sweep else [{}]

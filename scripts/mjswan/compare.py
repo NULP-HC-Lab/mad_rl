@@ -10,6 +10,9 @@ The old policy's `task.py` and checkpoint come from git history at `BLIND_REV` (
 8140be0). Both policies get the same course, the same jittered resets, pushes and foot
 friction (`task.env_cfg`). The blind policy has no goal input, so the common metric is
 crossing the goal line (the spawn-to-goal distance minus 0.5 m, along that line) before falling.
+
+Brick road is a heightfield, and MuJoCo-Warp keeps about 4 contacts per foot-heightfield pair where
+C MuJoCo keeps up to 50: AME-2 falls there in a few of 32 trials here and in none in `check.py`.
 """
 
 import argparse

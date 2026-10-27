@@ -64,6 +64,7 @@ uv run scripts/mjswan/compare.py            # AME-2 against the previous blind p
 uv run scripts/mjswan/smoke.py              # every scene loads and runs in headless Chromium
 uv run scripts/mjswan/build.py --publish    # upload to mjswan Cloud (GitHub sign-in)
 uv run scripts/mjswan/bake_course.py        # re-bake course.xml after the course changes in mad_assets
+uv run scripts/mjswan/bake_course.py --check   # exit 1 if course.xml no longer matches mad_assets
 ```
 
 The course geometry is baked into `scripts/mjswan/course.xml` from `mad_assets/scenes/default.usd`,
@@ -79,11 +80,17 @@ Not the lab's 25 cm stairs: they are 0.61 m wide and the policy walks around the
 stairs it climbs 25 cm in 14 of 16 trials).
 
 CI (`.github/workflows/mjswan.yml`, CPU only) runs on changes under `scripts/mjswan/`:
-`build.py`, then `check.py` (ONNX matches `task.actor()`, every scene reaches its goal in at
-least 3 of 4 seeded trials), then `smoke.py`. `smoke.py` catches a broken JS runtime or mjswan
+`build.py`, then `check.py` (ONNX matches `task.actor()`, shuffling any observation term
+changes the actions, every scene reaches its goal in at least 3 of 4 seeded trials), then `smoke.py`; a
+`lint` job runs the repo's pre-commit hooks on these files. `smoke.py` catches a broken JS runtime or mjswan
 upgrade, not gait. `check.py` reads the rays, rest pose and action scale from the built manifest,
 so a build that drops one fails there. Ready PRs also get a non-blocking comment with 32-trial
 success rates for the PR and its base, plus the PR's `--sweep` table.
+
+The input check exists because the previous checkpoint was trained with its height scan scaled
+by 0: shuffling its 55 scan inputs changes its actions by exactly 0. `compare.py` runs in
+MuJoCo-Warp, which keeps about 4 contacts per foot-heightfield pair (C MuJoCo up to 50); AME-2
+falls on the brick road (the only heightfield) in a few of 32 trials there and in none in `check.py`.
 
 ## Docker
 
